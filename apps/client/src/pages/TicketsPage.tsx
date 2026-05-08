@@ -10,6 +10,7 @@ import { canManageAdminModules } from '../lib/permissions';
 
 const statusLabels = { PENDING: 'Pendiente', IN_PROGRESS: 'En proceso', RESOLVED: 'Resuelto' };
 const priorityLabels = { HIGH: 'Alta', MEDIUM: 'Media', LOW: 'Baja' };
+const AUTO_REFRESH_MS = 30000;
 
 function formatDateTime(value?: string | null) {
   if (!value) return 'Pendiente';
@@ -32,7 +33,22 @@ export function TicketsPage() {
   const [resolvingTicketId, setResolvingTicketId] = useState<string | null>(null);
   const [expandedTicketIds, setExpandedTicketIds] = useState<Set<string>>(() => new Set());
 
-  useEffect(() => { api.get('/api/tickets').then(({ data }) => setTickets(data.data)); }, []);
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadTickets() {
+      const { data } = await api.get('/api/tickets');
+      if (isMounted) setTickets(data.data);
+    }
+
+    loadTickets();
+    const intervalId = window.setInterval(loadTickets, AUTO_REFRESH_MS);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   function toggleTicket(ticketId: string) {
     if (!canExpandTickets) return;

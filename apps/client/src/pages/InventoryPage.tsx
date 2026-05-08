@@ -10,6 +10,7 @@ import { canManageInventory } from '../lib/permissions';
 const image = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663544686165/ddias5Q8vyPdjBP2SBrsSn/inventory_device_plate-gFy9SwkSpQ7U5vuq2b6D8m.webp';
 
 const PAGE_SIZE = 8;
+const AUTO_REFRESH_MS = 30000;
 type InventoryPanel = 'ACTIVE' | 'DELIVERED';
 
 const stateLabels: Record<Device['state'], string> = {
@@ -96,15 +97,15 @@ export function InventoryPage() {
   const [returningId, setReturningId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadDevices() {
-    setLoading(true);
+  async function loadDevices(options: { silent?: boolean } = {}) {
+    if (!options.silent) setLoading(true);
     try {
       const { data } = await api.get('/api/devices');
       setDevices(data.data);
     } catch {
       setError('No fue posible cargar el inventario. Verifica la sesión y el backend local.');
     } finally {
-      setLoading(false);
+      if (!options.silent) setLoading(false);
     }
   }
 
@@ -135,12 +136,25 @@ export function InventoryPage() {
     }
   }
 
-  async function refreshAll() {
-    await Promise.all([loadDevices(), loadDeliveryHistory(), loadComputerEquipment(), loadDepartments()]);
+  async function refreshAll(options: { silent?: boolean } = {}) {
+    await Promise.all([loadDevices(options), loadDeliveryHistory(), loadComputerEquipment(), loadDepartments()]);
   }
 
   useEffect(() => {
-    refreshAll();
+    let isMounted = true;
+
+    async function refreshIfMounted(options: { silent?: boolean } = {}) {
+      if (!isMounted) return;
+      await refreshAll(options);
+    }
+
+    refreshIfMounted();
+    const intervalId = window.setInterval(() => refreshIfMounted({ silent: true }), AUTO_REFRESH_MS);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
   }, []);
 
   const activeDevices = useMemo(() => devices.filter((device) => device.loanStatus === 'ACTIVE'), [devices]);

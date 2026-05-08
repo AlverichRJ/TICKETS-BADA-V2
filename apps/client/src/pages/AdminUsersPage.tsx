@@ -11,6 +11,7 @@ type DepartmentForm = {
 };
 
 const initialDepartmentForm: DepartmentForm = { name: '', description: '' };
+const AUTO_REFRESH_MS = 30000;
 
 function formatAccessDate(value?: string | null) {
   if (!value) return 'Sin registro';
@@ -40,20 +41,33 @@ export function AdminUsersPage() {
     setDepartments(data.data);
   }
 
-  async function loadAll() {
-    setLoading(true);
+  async function loadAll(options: { silent?: boolean } = {}) {
+    if (!options.silent) setLoading(true);
     setError(null);
     try {
       await Promise.all([loadUsers(), loadDepartments()]);
     } catch {
       setError('No fue posible cargar usuarios y departamentos. Verifica permisos ADMIN y backend local.');
     } finally {
-      setLoading(false);
+      if (!options.silent) setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadAll();
+    let isMounted = true;
+
+    async function loadIfMounted(options: { silent?: boolean } = {}) {
+      if (!isMounted) return;
+      await loadAll(options);
+    }
+
+    loadIfMounted();
+    const intervalId = window.setInterval(() => loadIfMounted({ silent: true }), AUTO_REFRESH_MS);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
   }, []);
 
   const visibleUsers = useMemo(() => {
