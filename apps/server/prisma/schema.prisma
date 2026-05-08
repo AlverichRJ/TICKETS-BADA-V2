@@ -222,3 +222,14 @@ model TicketSequence {
   id    Int @id @default(1)
   value Int @default(0)
 }
+
+model SystemSetting {
+  id               Int      @id @default(1)
+  appName          String   @default("Tickets Inventario")
+  logoPath         String?
+  logoOriginalName String?
+  logoMimeType     String?
+  updatedById      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}

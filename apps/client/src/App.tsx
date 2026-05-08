@@ -12,6 +12,7 @@ import { NewTicketPage } from './pages/NewTicketPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
+import { SystemSettingsPage } from './pages/SystemSettingsPage';
 import { canManageAdminModules } from './lib/permissions';
 
 function Protected({ children, adminOnly = false }: { children: JSX.Element; adminOnly?: boolean }) {
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="tickets/new" element={<NewTicketPage />} />
         <Route path="inventory" element={<Protected adminOnly><InventoryPage /></Protected>} />
         <Route path="admin/users" element={<Protected adminOnly><AdminUsersPage /></Protected>} />
+        <Route path="admin/settings" element={<Protected adminOnly><SystemSettingsPage /></Protected>} />
       </Route>
     </Routes>
   );
