@@ -94,3 +94,24 @@ button, input, textarea, select { font: inherit; }
 .formActions { display: flex; justify-content: flex-end; gap: .8rem; flex-wrap: wrap; }
 button:disabled { opacity: .55; cursor: not-allowed; transform: none !important; }
 @media (max-width: 720px) { .inventoryForm { grid-template-columns: 1fr; } .modalHeader { flex-direction: column; } .formActions { justify-content: stretch; } .formActions button { width: 100%; justify-content: center; } }
+
+.inventoryActionRow {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-top: .35rem;
+}
+
+.readOnlyNotice {
+  display: inline-flex;
+  width: fit-content;
+  border: 2px solid var(--graphite);
+  background: rgba(71, 107, 145, .10);
+  color: var(--graphite);
+  padding: .65rem .85rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}

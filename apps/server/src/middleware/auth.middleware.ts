@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import type { Role, User as PrismaUser } from '@prisma/client';
-import { env } from '../config/env.js';
+import { adminEmails, env } from '../config/env.js';
 import { prisma } from '../config/prisma.js';
 import { AppError } from '../utils/http.js';
 
@@ -36,10 +36,20 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
   }
 }
 
+const localAdminEmails = ['suarez@badabun.com'];
+
+function hasRequiredRole(user: PrismaUser, roles: Role[]) {
+  if (roles.includes(user.role)) return true;
+  if (!roles.includes('ADMIN' as Role)) return false;
+
+  const email = user.email.toLowerCase();
+  return adminEmails.includes(email) || localAdminEmails.includes(email);
+}
+
 export function requireRole(...roles: Role[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.authUser) return next(new AppError(401, 'Sesión requerida.'));
-    if (!roles.includes(req.authUser.role)) return next(new AppError(403, 'No tienes permisos para esta acción.'));
+    if (!hasRequiredRole(req.authUser, roles)) return next(new AppError(403, 'No tienes permisos para esta acción.'));
     return next();
   };
 }

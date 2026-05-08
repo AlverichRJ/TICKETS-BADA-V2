@@ -5,6 +5,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { api, type Device, type User } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import { canManageInventory } from '../lib/permissions';
 
 const image = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663544686165/ddias5Q8vyPdjBP2SBrsSn/inventory_device_plate-gFy9SwkSpQ7U5vuq2b6D8m.webp';
 
@@ -40,7 +41,7 @@ const initialForm: InventoryForm = {
 
 export function InventoryPage() {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = canManageInventory(user);
   const [devices, setDevices] = useState<Device[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -147,7 +148,13 @@ export function InventoryPage() {
           <p className="eyebrow">Módulo 02 · Inventario</p>
           <h1>Inventario</h1>
           <p>Equipos, responsivas y asignaciones resguardadas en almacenamiento local. Los usuarios pueden consultar; solo ADMIN puede registrar o modificar equipos.</p>
-          {isAdmin && <button className="primaryAction compact" type="button" onClick={() => setIsModalOpen(true)}>Agregar equipo</button>}
+          <div className="inventoryActionRow">
+            {isAdmin ? (
+              <button className="primaryAction compact" type="button" onClick={() => setIsModalOpen(true)}>Agregar equipo</button>
+            ) : (
+              <span className="readOnlyNotice">Vista de consulta · tu cuenta no tiene permisos de alta</span>
+            )}
+          </div>
         </div>
         <img src={image} alt="Placas técnicas de inventario" />
       </header>
