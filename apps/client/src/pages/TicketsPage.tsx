@@ -1,6 +1,6 @@
 /**
  * Diseño elegido: Brutalismo administrativo suizo.
- * Listado de tickets con acordeón administrativo: el administrador despliega detalles; el usuario operativo ve el ticket sin control desplegable.
+ * Listado de tickets con acordeón administrativo: el administrador despliega detalles; el usuario operativo solo ve la descripción del fallo.
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -60,7 +60,7 @@ export function TicketsPage() {
       <header className="pageHeader"><div><p className="eyebrow">Módulo 01</p><h1>Tickets</h1></div><Link className="primaryAction compact" to="/tickets/new">Crear ticket</Link></header>
       <div className="ticketBoard ticketBoard--matrix">
         {tickets.map(ticket => {
-          const isExpanded = !canExpandTickets || expandedTicketIds.has(ticket.id);
+          const isExpanded = canExpandTickets && expandedTicketIds.has(ticket.id);
           return (
             <article className={`ticketCard ticketRecord ${canExpandTickets ? 'ticketRecord--admin' : 'ticketRecord--locked'} ${isExpanded ? 'isExpanded' : 'isCollapsed'}`} key={ticket.id}>
               <div className="ticketCollapseHeader">

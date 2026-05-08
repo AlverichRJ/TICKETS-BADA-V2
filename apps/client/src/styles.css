@@ -60,10 +60,14 @@ button, input, textarea, select { font: inherit; }
 .ticketBoard--matrix { grid-template-columns: 1fr; }
 .ticketRecord { display: grid; gap: .95rem; transition: background .18s ease, box-shadow .18s ease; }
 .ticketRecord--admin.isCollapsed { background: #fffdf4; box-shadow: 5px 5px 0 rgba(17,24,32,.12); }
+.ticketRecord--locked { padding: .9rem; background: transparent; border-width: 1px; box-shadow: none; }
+.ticketRecord--locked .ticketCollapseHeader { display: block; }
 .ticketCollapseHeader { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: stretch; }
 .ticketFailureOnly { border: 2px solid var(--graphite); background: rgba(255,255,255,.62); padding: .85rem; }
+.ticketRecord--locked .ticketFailureOnly { border-width: 1px; background: #fffdf4; padding: .85rem 1rem; }
 .ticketFailureOnly span { display: block; margin-bottom: .35rem; font-family: 'IBM Plex Mono', monospace; font-size: .68rem; font-weight: 900; text-transform: uppercase; letter-spacing: .07em; color: #53606b; }
 .ticketFailureOnly p { margin: 0; font-size: 1.02rem; line-height: 1.45; font-weight: 800; color: var(--graphite); }
+.ticketRecord--locked .ticketFailureOnly p { text-transform: uppercase; font-size: .95rem; }
 .ticketToggleAction { min-width: 138px; border: 2px solid var(--graphite); background: var(--graphite); color: var(--ivory); padding: .75rem .9rem; font-family: 'IBM Plex Mono', monospace; font-size: .72rem; font-weight: 900; text-transform: uppercase; letter-spacing: .07em; cursor: pointer; box-shadow: 4px 4px 0 rgba(17,24,32,.18); transition: transform .16s ease, box-shadow .16s ease, background .16s ease; }
 .ticketToggleAction:hover { transform: translate(2px,2px); box-shadow: 2px 2px 0 rgba(17,24,32,.18); background: var(--steel); }
 .ticketDetailsPanel { display: grid; gap: .95rem; border-top: 2px dashed var(--line); padding-top: .95rem; }
