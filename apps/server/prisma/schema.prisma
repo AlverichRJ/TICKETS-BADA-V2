@@ -69,6 +69,7 @@ model User {
   assignedDevices Device[]
   files File[]
   auditLogs TicketAudit[]
+  deliveredDeviceHistory DeviceDeliveryHistory[]
 
   @@index([departmentId])
 }
@@ -91,6 +92,7 @@ model Device {
 
   tickets Ticket[]
   files   File[]
+  deliveryHistory DeviceDeliveryHistory[]
 
   @@index([assignedUserId])
   @@index([assignedComputerEquipmentId])
@@ -119,6 +121,33 @@ model Department {
 
   users   User[]
   devices Device[]
+}
+
+model DeviceDeliveryHistory {
+  id                         String             @id @default(cuid())
+  deviceId                   String
+  device                     Device             @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  deliveredById              String?
+  deliveredBy                User?              @relation(fields: [deliveredById], references: [id], onDelete: SetNull)
+  previousAssignedUserId     String?
+  previousAssignedUserName   String
+  previousAssignedUserEmail  String?
+  previousDepartmentId       String?
+  previousDepartmentName     String?
+  previousComputerEquipmentId String?
+  previousComputerEquipmentName String?
+  equipment                  String
+  serialNumber               String
+  state                      DeviceState
+  description                String?
+  notes                      String?
+  deliveredAt                DateTime           @default(now())
+  createdAt                  DateTime           @default(now())
+
+  @@index([deviceId])
+  @@index([deliveredById])
+  @@index([previousDepartmentId])
+  @@index([deliveredAt])
 }
 
 model Ticket {

@@ -63,3 +63,27 @@ export type Device = {
   department?: Department | null;
   files?: DeviceFile[];
 };
+
+export type DeviceDeliveryHistory = {
+  id: string;
+  deviceId: string;
+  deliveredBy?: Pick<User, 'id' | 'name' | 'email'> | null;
+  previousAssignedUserId?: string | null;
+  previousAssignedUserName: string;
+  previousAssignedUserEmail?: string | null;
+  previousDepartmentId?: string | null;
+  previousDepartmentName?: string | null;
+  previousComputerEquipmentId?: string | null;
+  previousComputerEquipmentName?: string | null;
+  equipment: string;
+  serialNumber: string;
+  state: Device['state'];
+  description?: string | null;
+  notes?: string | null;
+  deliveredAt: string;
+  createdAt: string;
+  device?: Pick<Device, 'id' | 'equipment' | 'serialNumber' | 'state' | 'loanStatus'> & {
+    assignedComputerEquipment?: Pick<ComputerEquipment, 'id' | 'name'> | null;
+    department?: Pick<Department, 'id' | 'name'> | null;
+  };
+};

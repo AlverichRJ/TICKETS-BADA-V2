@@ -12,3 +12,7 @@ export const createDeviceSchema = z.object({
 });
 
 export const updateDeviceSchema = createDeviceSchema.partial();
+
+export const returnDeviceSchema = z.object({
+  notes: z.string().max(500).optional().nullable()
+});

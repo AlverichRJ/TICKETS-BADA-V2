@@ -272,3 +272,91 @@ button:disabled { opacity: .55; cursor: not-allowed; transform: none !important;
     width: 100%;
   }
 }
+
+/* Brutalismo administrativo suizo · separación explícita entre inventario activo e historial de entregas. */
+.inventoryPanelHeader {
+  border: 2px solid var(--graphite);
+  background: #f9f4e8;
+  padding: 1rem 1.15rem;
+  box-shadow: 5px 5px 0 rgba(17, 24, 32, 0.12);
+}
+
+.inventoryPanelHeader h2 {
+  margin: 0.15rem 0 0.35rem;
+  font-family: 'IBM Plex Sans Condensed', sans-serif;
+  font-size: clamp(1.45rem, 3vw, 2.35rem);
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+}
+
+.inventoryPanelHeader p {
+  margin: 0;
+  max-width: 68rem;
+}
+
+.deliveredPanelHeader {
+  background: #e8dcc9;
+}
+
+.deliveredTableShell {
+  background: #f3eadb;
+}
+
+.deliveredInventoryTable td {
+  vertical-align: top;
+}
+
+.tableActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.ghostAction.mini,
+.dangerAction.mini {
+  min-height: 2.1rem;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.72rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.dangerAction {
+  border: 2px solid var(--graphite);
+  background: #ffe3d8;
+  color: var(--graphite);
+  box-shadow: 3px 3px 0 var(--graphite);
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.dangerAction:hover:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--graphite);
+  background: #ffc8b7;
+}
+
+.dangerAction:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cellHint {
+  display: block;
+  margin-top: 0.3rem;
+  color: #6b7280;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 960px) {
+  .tableActions {
+    min-width: 9rem;
+  }
+}

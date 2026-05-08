@@ -1,9 +1,9 @@
 /**
  * Diseño elegido: Brutalismo administrativo suizo.
- * Inventario operativo con tabla tipo hoja de resguardo, alta solo ADMIN, catálogo de equipos de cómputo, departamentos normalizados y responsivas visibles con ruta autenticada.
+ * Inventario operativo dividido en equipos activos editables e historial de entregas, con controles compactos y tablas tipo resguardo.
  */
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { api, type ComputerEquipment, type Department, type Device } from '../api/client';
+import { api, type ComputerEquipment, type Department, type Device, type DeviceDeliveryHistory } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { canManageInventory } from '../lib/permissions';
 
@@ -36,7 +36,7 @@ const initialForm: InventoryForm = {
   assignedComputerEquipmentId: '',
   departmentId: '',
   serialNumber: '',
-  state: 'AVAILABLE',
+  state: 'ASSIGNED',
   description: '',
   loanStatus: 'ACTIVE'
 };
@@ -51,14 +51,32 @@ const initialCatalogForm: CatalogForm = {
   description: ''
 };
 
+function formFromDevice(device: Device): InventoryForm {
+  return {
+    equipment: device.equipment,
+    assignedComputerEquipmentId: device.assignedComputerEquipment?.id || '',
+    departmentId: device.departmentId || device.department?.id || '',
+    serialNumber: device.serialNumber,
+    state: device.state,
+    description: device.description || '',
+    loanStatus: device.loanStatus
+  };
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+}
+
 export function InventoryPage() {
   const { user } = useAuth();
   const isAdmin = canManageInventory(user);
   const [devices, setDevices] = useState<Device[]>([]);
+  const [deliveryHistory, setDeliveryHistory] = useState<DeviceDeliveryHistory[]>([]);
   const [computerEquipment, setComputerEquipment] = useState<ComputerEquipment[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [departmentFilter, setDepartmentFilter] = useState('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isDepartmentCatalogOpen, setIsDepartmentCatalogOpen] = useState(false);
   const [form, setForm] = useState<InventoryForm>(initialForm);
@@ -69,6 +87,7 @@ export function InventoryPage() {
   const [saving, setSaving] = useState(false);
   const [savingCatalog, setSavingCatalog] = useState(false);
   const [savingDepartment, setSavingDepartment] = useState(false);
+  const [returningId, setReturningId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function loadDevices() {
@@ -80,6 +99,15 @@ export function InventoryPage() {
       setError('No fue posible cargar el inventario. Verifica la sesión y el backend local.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadDeliveryHistory() {
+    try {
+      const { data } = await api.get('/api/devices/delivery-history');
+      setDeliveryHistory(data.data);
+    } catch {
+      setDeliveryHistory([]);
     }
   }
 
@@ -101,29 +129,56 @@ export function InventoryPage() {
     }
   }
 
+  async function refreshAll() {
+    await Promise.all([loadDevices(), loadDeliveryHistory(), loadComputerEquipment(), loadDepartments()]);
+  }
+
   useEffect(() => {
-    loadDevices();
-    loadComputerEquipment();
-    loadDepartments();
+    refreshAll();
   }, []);
 
+  const activeDevices = useMemo(() => devices.filter((device) => device.loanStatus === 'ACTIVE'), [devices]);
+
   const visibleDevices = useMemo(() => {
-    return [...devices]
+    return [...activeDevices]
       .filter((device) => departmentFilter === 'ALL' || (departmentFilter === 'NONE' ? !device.departmentId : device.departmentId === departmentFilter))
       .sort((a, b) => {
         const departmentA = a.department?.name || 'ZZZ Sin departamento';
         const departmentB = b.department?.name || 'ZZZ Sin departamento';
         return departmentA.localeCompare(departmentB, 'es') || a.equipment.localeCompare(b.equipment, 'es');
       });
-  }, [departmentFilter, devices]);
+  }, [activeDevices, departmentFilter]);
+
+  const visibleDeliveryHistory = useMemo(() => {
+    return [...deliveryHistory]
+      .filter((item) => departmentFilter === 'ALL' || (departmentFilter === 'NONE' ? !item.previousDepartmentId : item.previousDepartmentId === departmentFilter))
+      .sort((a, b) => new Date(b.deliveredAt).getTime() - new Date(a.deliveredAt).getTime());
+  }, [deliveryHistory, departmentFilter]);
 
   function updateField<K extends keyof InventoryForm>(key: K, value: InventoryForm[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  function openCreateModal() {
+    setEditingDevice(null);
+    setForm(initialForm);
+    setResponsiva(null);
+    setError(null);
+    setIsModalOpen(true);
+  }
+
+  function openEditModal(device: Device) {
+    setEditingDevice(device);
+    setForm(formFromDevice(device));
+    setResponsiva(null);
+    setError(null);
+    setIsModalOpen(true);
+  }
+
   function closeModal() {
     if (saving || savingCatalog || savingDepartment) return;
     setIsModalOpen(false);
+    setEditingDevice(null);
     setIsCatalogOpen(false);
     setIsDepartmentCatalogOpen(false);
     setForm(initialForm);
@@ -183,6 +238,16 @@ export function InventoryPage() {
     }
   }
 
+  async function uploadResponsiva(deviceId: string) {
+    if (!responsiva) return;
+    const formData = new FormData();
+    formData.append('file', responsiva);
+    formData.append('type', 'RESPONSIVA');
+    await api.post(`/api/devices/${deviceId}/files`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!isAdmin) return;
@@ -201,27 +266,41 @@ export function InventoryPage() {
         loanStatus: form.loanStatus
       };
 
-      const { data } = await api.post('/api/devices', payload);
-      const createdDevice: Device = data.data;
-
-      if (responsiva) {
-        const formData = new FormData();
-        formData.append('file', responsiva);
-        formData.append('type', 'RESPONSIVA');
-        await api.post(`/api/devices/${createdDevice.id}/files`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+      if (editingDevice) {
+        const { data } = await api.patch(`/api/devices/${editingDevice.id}`, payload);
+        const updatedDevice: Device = data.data;
+        await uploadResponsiva(updatedDevice.id);
+      } else {
+        const { data } = await api.post('/api/devices', payload);
+        const createdDevice: Device = data.data;
+        await uploadResponsiva(createdDevice.id);
       }
 
-      await loadDevices();
-      await loadComputerEquipment();
-      await loadDepartments();
+      await refreshAll();
       closeModal();
     } catch (requestError: any) {
       const message = requestError?.response?.data?.error || 'No fue posible guardar el registro. Revisa campos obligatorios y número de serie.';
       setError(message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleMarkReturned(device: Device) {
+    if (!isAdmin) return;
+    const notes = window.prompt(`Notas de entrega para ${device.equipment}. Puedes dejarlo vacío.`, '');
+    if (notes === null) return;
+    setReturningId(device.id);
+    setError(null);
+
+    try {
+      await api.patch(`/api/devices/${device.id}/return`, { notes: notes.trim() || null });
+      await refreshAll();
+    } catch (requestError: any) {
+      const message = requestError?.response?.data?.error || 'No fue posible marcar el equipo como entregado.';
+      setError(message);
+    } finally {
+      setReturningId(null);
     }
   }
 
@@ -237,10 +316,10 @@ export function InventoryPage() {
         <div>
           <p className="eyebrow">Módulo 02 · Inventario</p>
           <h1>Inventario</h1>
-          <p>Equipos, responsivas y asignaciones resguardadas en almacenamiento local. Los usuarios pueden consultar; solo ADMIN puede registrar o modificar equipos.</p>
+          <p>Equipos, responsivas y asignaciones resguardadas en almacenamiento local. La tabla principal muestra solo préstamos activos; el historial de entregas queda separado para no amontonar la operación diaria.</p>
           <div className="inventoryActionRow">
             {isAdmin ? (
-              <button className="primaryAction compact" type="button" onClick={() => setIsModalOpen(true)}>Agregar equipo</button>
+              <button className="primaryAction compact" type="button" onClick={openCreateModal}>Agregar equipo</button>
             ) : (
               <span className="readOnlyNotice">Vista de consulta · tu cuenta no tiene permisos de alta</span>
             )}
@@ -260,8 +339,16 @@ export function InventoryPage() {
             {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
           </select>
         </label>
-        <span className="readOnlyNotice">{visibleDevices.length} registros visibles</span>
+        <span className="readOnlyNotice">{visibleDevices.length} activos · {visibleDeliveryHistory.length} entregados</span>
       </div>
+
+      <section className="inventoryPanelHeader">
+        <div>
+          <p className="eyebrow">Panel principal</p>
+          <h2>Equipos activos</h2>
+          <p>Usa este panel para editar asignaciones vigentes o marcar una entrega cuando el equipo sea devuelto.</p>
+        </div>
+      </section>
 
       <div className="inventoryTableShell">
         <table className="inventoryTable">
@@ -275,6 +362,7 @@ export function InventoryPage() {
               <th>Descripción</th>
               <th>Estado del préstamo</th>
               <th>Responsiva</th>
+              {isAdmin && <th>Acciones</th>}
             </tr>
           </thead>
           <tbody>
@@ -296,13 +384,61 @@ export function InventoryPage() {
                       <span className="mutedText">Sin archivo</span>
                     )}
                   </td>
+                  {isAdmin && (
+                    <td className="tableActions">
+                      <button className="ghostAction mini" type="button" onClick={() => openEditModal(device)}>Editar</button>
+                      <button className="dangerAction mini" type="button" onClick={() => handleMarkReturned(device)} disabled={returningId === device.id}>
+                        {returningId === device.id ? 'Entregando...' : 'Entregar'}
+                      </button>
+                    </td>
+                  )}
                 </tr>
               );
             })}
           </tbody>
         </table>
-        {!loading && visibleDevices.length === 0 && <div className="emptyState">Aún no hay equipos para el filtro seleccionado.</div>}
+        {!loading && visibleDevices.length === 0 && <div className="emptyState">No hay equipos activos para el filtro seleccionado.</div>}
         {loading && <div className="emptyState">Cargando inventario...</div>}
+      </div>
+
+      <section className="inventoryPanelHeader deliveredPanelHeader">
+        <div>
+          <p className="eyebrow">Panel histórico</p>
+          <h2>Equipos entregados</h2>
+          <p>Este panel conserva quién tuvo asignado cada equipo antes de la entrega. No se mezcla con los préstamos activos.</p>
+        </div>
+      </section>
+
+      <div className="inventoryTableShell deliveredTableShell">
+        <table className="inventoryTable deliveredInventoryTable">
+          <thead>
+            <tr>
+              <th>Fecha de entrega</th>
+              <th>Lo tuvo asignado</th>
+              <th>Departamento anterior</th>
+              <th>Equipo</th>
+              <th>Número de serie</th>
+              <th>Estado al entregar</th>
+              <th>Notas</th>
+              <th>Registró</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleDeliveryHistory.map((item) => (
+              <tr key={item.id}>
+                <td>{formatDate(item.deliveredAt)}</td>
+                <td><strong>{item.previousAssignedUserName}</strong>{item.previousAssignedUserEmail && <small className="cellHint">{item.previousAssignedUserEmail}</small>}</td>
+                <td>{item.previousDepartmentName || 'Sin departamento'}</td>
+                <td>{item.previousComputerEquipmentName || item.equipment}</td>
+                <td><span className="folio">{item.serialNumber}</span></td>
+                <td><span className={`status deviceState ${item.state}`}>{stateLabels[item.state]}</span></td>
+                <td>{item.notes || item.description || 'Sin notas'}</td>
+                <td>{item.deliveredBy?.name || 'Sistema'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!loading && visibleDeliveryHistory.length === 0 && <div className="emptyState">Aún no hay equipos entregados para el filtro seleccionado.</div>}
       </div>
 
       {isModalOpen && (
@@ -310,15 +446,15 @@ export function InventoryPage() {
           <section className="modalPanel" role="dialog" aria-modal="true" aria-labelledby="inventory-create-title">
             <div className="modalHeader">
               <div>
-                <p className="eyebrow">Alta administrativa</p>
-                <h2 id="inventory-create-title">Agregar equipo</h2>
+                <p className="eyebrow">{editingDevice ? 'Edición administrativa' : 'Alta administrativa'}</p>
+                <h2 id="inventory-create-title">{editingDevice ? 'Editar equipo registrado' : 'Agregar equipo'}</h2>
               </div>
               <button className="ghostAction" type="button" onClick={closeModal} disabled={saving || savingCatalog || savingDepartment}>Cerrar</button>
             </div>
 
             <form className="adminForm inventoryForm" onSubmit={handleSubmit}>
               <label>
-                Nombre
+                Nombre de quien tiene el equipo
                 <input value={form.equipment} onChange={(event) => updateField('equipment', event.target.value)} required minLength={2} placeholder="Ej. Jorge Suárez" />
               </label>
 
@@ -407,12 +543,12 @@ export function InventoryPage() {
               <label className="wideField fileField">
                 Responsiva PDF o imagen
                 <input type="file" accept="application/pdf,image/png,image/jpeg" onChange={(event) => setResponsiva(event.target.files?.[0] || null)} />
-                <span>{responsiva ? responsiva.name : 'Formatos permitidos: PDF, JPG o PNG.'}</span>
+                <span>{responsiva ? responsiva.name : editingDevice ? 'Subir archivo solo si deseas anexar una nueva responsiva.' : 'Formatos permitidos: PDF, JPG o PNG.'}</span>
               </label>
 
               <div className="formActions wideField">
                 <button className="ghostAction" type="button" onClick={closeModal} disabled={saving || savingCatalog || savingDepartment}>Cancelar</button>
-                <button className="primaryAction compact" type="submit" disabled={saving || savingCatalog || savingDepartment}>{saving ? 'Guardando...' : 'Guardar registro'}</button>
+                <button className="primaryAction compact" type="submit" disabled={saving || savingCatalog || savingDepartment}>{saving ? 'Guardando...' : editingDevice ? 'Guardar cambios' : 'Guardar registro'}</button>
               </div>
             </form>
           </section>
