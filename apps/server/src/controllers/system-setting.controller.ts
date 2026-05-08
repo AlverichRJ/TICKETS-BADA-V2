@@ -88,5 +88,6 @@ export async function logo(_req: Request, res: Response) {
   res.setHeader('Content-Type', setting.logoMimeType);
   res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(setting.logoOriginalName || 'logo-sistema')}"`);
   res.setHeader('Cache-Control', 'private, max-age=300');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   return res.sendFile(absolutePath);
 }
