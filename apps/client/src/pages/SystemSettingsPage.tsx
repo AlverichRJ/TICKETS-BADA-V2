@@ -2,7 +2,7 @@
  * Diseño elegido: Brutalismo administrativo suizo.
  * Panel de identidad institucional con formularios compactos, contraste alto y controles ADMIN explícitos.
  */
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { ImageUp, Save } from 'lucide-react';
 import { api } from '../api/client';
 import { buildSystemLogoUrl, defaultSystemSetting, fetchSystemSetting, type SystemSetting } from '../lib/system-settings';
@@ -16,9 +16,11 @@ export function SystemSettingsPage() {
   const [savingLogo, setSavingLogo] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [previewObjectUrl, setPreviewObjectUrl] = useState<string | null>(null);
+  const [logoLoadFailed, setLogoLoadFailed] = useState(false);
 
   const currentLogoUrl = buildSystemLogoUrl(setting.logoUrl);
-  const previewLogoUrl = useMemo(() => (logoFile ? URL.createObjectURL(logoFile) : currentLogoUrl), [logoFile, currentLogoUrl]);
+  const previewLogoUrl = previewObjectUrl || currentLogoUrl;
 
   useEffect(() => {
     let mounted = true;
@@ -38,11 +40,24 @@ export function SystemSettingsPage() {
 
   useEffect(() => {
     return () => {
-      if (logoFile && previewLogoUrl?.startsWith('blob:')) URL.revokeObjectURL(previewLogoUrl);
+      if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
     };
-  }, [logoFile, previewLogoUrl]);
+  }, [previewObjectUrl]);
 
   const notifyLayout = () => window.dispatchEvent(new Event('system-settings-updated'));
+
+  const handleLogoSelection = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0] || null;
+    setError('');
+    setSuccess('');
+    setLogoLoadFailed(false);
+
+    setLogoFile(selectedFile);
+    setPreviewObjectUrl((previousUrl) => {
+      if (previousUrl) URL.revokeObjectURL(previousUrl);
+      return selectedFile ? URL.createObjectURL(selectedFile) : null;
+    });
+  };
 
   const saveName = async (event: FormEvent) => {
     event.preventDefault();
@@ -82,6 +97,11 @@ export function SystemSettingsPage() {
       });
       setSetting(response.data.data);
       setLogoFile(null);
+      setPreviewObjectUrl((previousUrl) => {
+        if (previousUrl) URL.revokeObjectURL(previousUrl);
+        return null;
+      });
+      setLogoLoadFailed(false);
       setSuccess('Logo del sistema actualizado correctamente.');
       notifyLayout();
     } catch (requestError: any) {
@@ -133,7 +153,11 @@ export function SystemSettingsPage() {
         <article className="formShell systemBrandPanel">
           <span className="eyebrow">Foto / logo</span>
           <div className="brandPreview">
-            {previewLogoUrl ? <img src={previewLogoUrl} alt="Vista previa del logo" /> : <span>SYS</span>}
+            {previewLogoUrl && !logoLoadFailed ? (
+              <img src={previewLogoUrl} alt="Vista previa del logo" onLoad={() => setLogoLoadFailed(false)} onError={() => setLogoLoadFailed(true)} />
+            ) : (
+              <span>SYS</span>
+            )}
             <strong>{appName || defaultSystemSetting.appName}</strong>
           </div>
           <form className="adminForm" onSubmit={saveLogo}>
@@ -142,7 +166,7 @@ export function SystemSettingsPage() {
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
-                onChange={(event) => setLogoFile(event.target.files?.[0] || null)}
+                onChange={handleLogoSelection}
                 disabled={loading || savingLogo}
               />
               <span>Formatos permitidos: JPG, PNG o WEBP. Tamaño máximo: 5 MB.</span>

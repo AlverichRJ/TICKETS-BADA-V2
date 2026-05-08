@@ -13,6 +13,7 @@ export function DashboardLayout() {
   const { user, logout } = useAuth();
   const canSeeAdminModules = canManageAdminModules(user);
   const [systemSetting, setSystemSetting] = useState<SystemSetting>(defaultSystemSetting);
+  const [logoLoadFailed, setLogoLoadFailed] = useState(false);
   const logoUrl = buildSystemLogoUrl(systemSetting.logoUrl);
 
   useEffect(() => {
@@ -20,7 +21,10 @@ export function DashboardLayout() {
     const refreshSystemSetting = async () => {
       try {
         const nextSetting = await fetchSystemSetting();
-        if (mounted) setSystemSetting(nextSetting);
+        if (mounted) {
+          setSystemSetting(nextSetting);
+          setLogoLoadFailed(false);
+        }
       } catch {
         if (mounted) setSystemSetting(defaultSystemSetting);
       }
@@ -39,7 +43,7 @@ export function DashboardLayout() {
       <aside className="sidebar">
         <div className="brand">
           <span className="brandMark">
-            {logoUrl ? <img src={logoUrl} alt="Logo del sistema" /> : 'SYS'}
+            {logoUrl && !logoLoadFailed ? <img src={logoUrl} alt="Logo del sistema" onError={() => setLogoLoadFailed(true)} /> : 'SYS'}
           </span>
           <strong>{systemSetting.appName}</strong>
         </div>
