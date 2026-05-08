@@ -360,3 +360,104 @@ button:disabled { opacity: .55; cursor: not-allowed; transform: none !important;
     min-width: 9rem;
   }
 }
+
+/* Brutalismo administrativo suizo · subpaneles internos de Inventario con paginación para evitar scroll vertical largo. */
+.inventoryTabsShell {
+  display: grid;
+  gap: 1rem;
+}
+
+.inventoryTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  border: 2px solid var(--graphite);
+  background: #e6ddcc;
+  padding: 0.75rem;
+  box-shadow: 6px 6px 0 rgba(17, 24, 32, 0.14);
+}
+
+.inventoryTab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  min-width: 13rem;
+  border: 2px solid var(--graphite);
+  background: var(--paper);
+  color: var(--graphite);
+  padding: 0.8rem 1rem;
+  box-shadow: 4px 4px 0 rgba(17, 24, 32, 0.18);
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.inventoryTab strong {
+  display: inline-grid;
+  min-width: 2.35rem;
+  min-height: 2.35rem;
+  place-items: center;
+  border: 2px solid var(--graphite);
+  background: #10202b;
+  color: var(--paper);
+  font-size: 0.8rem;
+}
+
+.inventoryTab:hover,
+.inventoryTab.active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 rgba(17, 24, 32, 0.3);
+  background: #dbe8ef;
+}
+
+.inventoryTab.active {
+  border-left-width: 8px;
+}
+
+.inventorySubpanel {
+  display: grid;
+  gap: 1rem;
+}
+
+.inventoryTableShell {
+  max-height: none;
+}
+
+.paginationBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.85rem;
+  border: 2px solid var(--graphite);
+  background: #f9f4e8;
+  padding: 0.85rem 1rem;
+  box-shadow: 5px 5px 0 rgba(17, 24, 32, 0.12);
+}
+
+.paginationBar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 3px 3px 0 var(--graphite);
+}
+
+@media (max-width: 760px) {
+  .inventoryTabs,
+  .paginationBar {
+    align-items: stretch;
+  }
+
+  .inventoryTab {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .paginationBar {
+    justify-content: center;
+  }
+}

@@ -9,6 +9,9 @@ import { canManageInventory } from '../lib/permissions';
 
 const image = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663544686165/ddias5Q8vyPdjBP2SBrsSn/inventory_device_plate-gFy9SwkSpQ7U5vuq2b6D8m.webp';
 
+const PAGE_SIZE = 8;
+type InventoryPanel = 'ACTIVE' | 'DELIVERED';
+
 const stateLabels: Record<Device['state'], string> = {
   AVAILABLE: 'Disponible',
   ASSIGNED: 'Asignado',
@@ -75,6 +78,9 @@ export function InventoryPage() {
   const [computerEquipment, setComputerEquipment] = useState<ComputerEquipment[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [departmentFilter, setDepartmentFilter] = useState('ALL');
+  const [activePanel, setActivePanel] = useState<InventoryPanel>('ACTIVE');
+  const [activePage, setActivePage] = useState(1);
+  const [deliveredPage, setDeliveredPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
@@ -154,6 +160,32 @@ export function InventoryPage() {
       .filter((item) => departmentFilter === 'ALL' || (departmentFilter === 'NONE' ? !item.previousDepartmentId : item.previousDepartmentId === departmentFilter))
       .sort((a, b) => new Date(b.deliveredAt).getTime() - new Date(a.deliveredAt).getTime());
   }, [deliveryHistory, departmentFilter]);
+
+  const activePageCount = Math.max(1, Math.ceil(visibleDevices.length / PAGE_SIZE));
+  const deliveredPageCount = Math.max(1, Math.ceil(visibleDeliveryHistory.length / PAGE_SIZE));
+
+  const paginatedDevices = useMemo(() => {
+    const start = (activePage - 1) * PAGE_SIZE;
+    return visibleDevices.slice(start, start + PAGE_SIZE);
+  }, [visibleDevices, activePage]);
+
+  const paginatedDeliveryHistory = useMemo(() => {
+    const start = (deliveredPage - 1) * PAGE_SIZE;
+    return visibleDeliveryHistory.slice(start, start + PAGE_SIZE);
+  }, [visibleDeliveryHistory, deliveredPage]);
+
+  useEffect(() => {
+    setActivePage(1);
+    setDeliveredPage(1);
+  }, [departmentFilter]);
+
+  useEffect(() => {
+    if (activePage > activePageCount) setActivePage(activePageCount);
+  }, [activePage, activePageCount]);
+
+  useEffect(() => {
+    if (deliveredPage > deliveredPageCount) setDeliveredPage(deliveredPageCount);
+  }, [deliveredPage, deliveredPageCount]);
 
   function updateField<K extends keyof InventoryForm>(key: K, value: InventoryForm[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -342,104 +374,155 @@ export function InventoryPage() {
         <span className="readOnlyNotice">{visibleDevices.length} activos · {visibleDeliveryHistory.length} entregados</span>
       </div>
 
-      <section className="inventoryPanelHeader">
-        <div>
-          <p className="eyebrow">Panel principal</p>
-          <h2>Equipos activos</h2>
-          <p>Usa este panel para editar asignaciones vigentes o marcar una entrega cuando el equipo sea devuelto.</p>
+      <section className="inventoryTabsShell" aria-label="Subpaneles de inventario">
+        <div className="inventoryTabs" role="tablist" aria-label="Seleccionar subpanel de inventario">
+          <button
+            className={`inventoryTab ${activePanel === 'ACTIVE' ? 'active' : ''}`}
+            type="button"
+            role="tab"
+            aria-selected={activePanel === 'ACTIVE'}
+            onClick={() => setActivePanel('ACTIVE')}
+          >
+            <span>Activos</span>
+            <strong>{visibleDevices.length}</strong>
+          </button>
+          <button
+            className={`inventoryTab ${activePanel === 'DELIVERED' ? 'active' : ''}`}
+            type="button"
+            role="tab"
+            aria-selected={activePanel === 'DELIVERED'}
+            onClick={() => setActivePanel('DELIVERED')}
+          >
+            <span>Entregados</span>
+            <strong>{visibleDeliveryHistory.length}</strong>
+          </button>
         </div>
+
+        {activePanel === 'ACTIVE' && (
+          <div className="inventorySubpanel" role="tabpanel">
+            <section className="inventoryPanelHeader">
+              <div>
+                <p className="eyebrow">Subpanel operativo</p>
+                <h2>Equipos activos</h2>
+                <p>Usa este subpanel para editar asignaciones vigentes o marcar una entrega cuando el equipo sea devuelto. La lista se muestra por páginas para evitar scroll largo.</p>
+              </div>
+              <span className="readOnlyNotice">Página {activePage} de {activePageCount}</span>
+            </section>
+
+            <div className="inventoryTableShell">
+              <table className="inventoryTable">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Departamento</th>
+                    <th>Equipo asignado</th>
+                    <th>Número de serie</th>
+                    <th>Estado del equipo</th>
+                    <th>Descripción</th>
+                    <th>Estado del préstamo</th>
+                    <th>Responsiva</th>
+                    {isAdmin && <th>Acciones</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedDevices.map((device) => {
+                    const responsivaFile = device.files?.find((item) => item.type === 'RESPONSIVA');
+                    return (
+                      <tr key={device.id}>
+                        <td><strong>{device.equipment}</strong></td>
+                        <td>{device.department?.name || 'Sin departamento'}</td>
+                        <td>{device.assignedComputerEquipment?.name || 'Sin asignar'}</td>
+                        <td><span className="folio">{device.serialNumber}</span></td>
+                        <td><span className={`status deviceState ${device.state}`}>{stateLabels[device.state]}</span></td>
+                        <td>{device.description || 'Sin descripción'}</td>
+                        <td>{loanStatusLabels[device.loanStatus]}</td>
+                        <td>
+                          {responsivaFile ? (
+                            <button className="linkAction" type="button" onClick={() => openResponsiva(device)}>Visualizar</button>
+                          ) : (
+                            <span className="mutedText">Sin archivo</span>
+                          )}
+                        </td>
+                        {isAdmin && (
+                          <td className="tableActions">
+                            <button className="ghostAction mini" type="button" onClick={() => openEditModal(device)}>Editar</button>
+                            <button className="dangerAction mini" type="button" onClick={() => handleMarkReturned(device)} disabled={returningId === device.id}>
+                              {returningId === device.id ? 'Entregando...' : 'Entregar'}
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {!loading && visibleDevices.length === 0 && <div className="emptyState">No hay equipos activos para el filtro seleccionado.</div>}
+              {loading && <div className="emptyState">Cargando inventario...</div>}
+            </div>
+
+            {visibleDevices.length > 0 && (
+              <div className="paginationBar" aria-label="Paginación de equipos activos">
+                <button className="ghostAction mini" type="button" onClick={() => setActivePage((page) => Math.max(1, page - 1))} disabled={activePage === 1}>Anterior</button>
+                <span className="folio">Mostrando {((activePage - 1) * PAGE_SIZE) + 1}-{Math.min(activePage * PAGE_SIZE, visibleDevices.length)} de {visibleDevices.length}</span>
+                <button className="ghostAction mini" type="button" onClick={() => setActivePage((page) => Math.min(activePageCount, page + 1))} disabled={activePage === activePageCount}>Siguiente</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activePanel === 'DELIVERED' && (
+          <div className="inventorySubpanel" role="tabpanel">
+            <section className="inventoryPanelHeader deliveredPanelHeader">
+              <div>
+                <p className="eyebrow">Subpanel histórico</p>
+                <h2>Equipos entregados</h2>
+                <p>Este subpanel conserva quién tuvo asignado cada equipo antes de la entrega. No se mezcla con los préstamos activos.</p>
+              </div>
+              <span className="readOnlyNotice">Página {deliveredPage} de {deliveredPageCount}</span>
+            </section>
+
+            <div className="inventoryTableShell deliveredTableShell">
+              <table className="inventoryTable deliveredInventoryTable">
+                <thead>
+                  <tr>
+                    <th>Fecha de entrega</th>
+                    <th>Lo tuvo asignado</th>
+                    <th>Departamento anterior</th>
+                    <th>Equipo</th>
+                    <th>Número de serie</th>
+                    <th>Estado al entregar</th>
+                    <th>Notas</th>
+                    <th>Registró</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedDeliveryHistory.map((item) => (
+                    <tr key={item.id}>
+                      <td>{formatDate(item.deliveredAt)}</td>
+                      <td><strong>{item.previousAssignedUserName}</strong>{item.previousAssignedUserEmail && <small className="cellHint">{item.previousAssignedUserEmail}</small>}</td>
+                      <td>{item.previousDepartmentName || 'Sin departamento'}</td>
+                      <td>{item.previousComputerEquipmentName || item.equipment}</td>
+                      <td><span className="folio">{item.serialNumber}</span></td>
+                      <td><span className={`status deviceState ${item.state}`}>{stateLabels[item.state]}</span></td>
+                      <td>{item.notes || item.description || 'Sin notas'}</td>
+                      <td>{item.deliveredBy?.name || 'Sistema'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!loading && visibleDeliveryHistory.length === 0 && <div className="emptyState">Aún no hay equipos entregados para el filtro seleccionado.</div>}
+            </div>
+
+            {visibleDeliveryHistory.length > 0 && (
+              <div className="paginationBar" aria-label="Paginación de equipos entregados">
+                <button className="ghostAction mini" type="button" onClick={() => setDeliveredPage((page) => Math.max(1, page - 1))} disabled={deliveredPage === 1}>Anterior</button>
+                <span className="folio">Mostrando {((deliveredPage - 1) * PAGE_SIZE) + 1}-{Math.min(deliveredPage * PAGE_SIZE, visibleDeliveryHistory.length)} de {visibleDeliveryHistory.length}</span>
+                <button className="ghostAction mini" type="button" onClick={() => setDeliveredPage((page) => Math.min(deliveredPageCount, page + 1))} disabled={deliveredPage === deliveredPageCount}>Siguiente</button>
+              </div>
+            )}
+          </div>
+        )}
       </section>
-
-      <div className="inventoryTableShell">
-        <table className="inventoryTable">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Departamento</th>
-              <th>Equipo asignado</th>
-              <th>Número de serie</th>
-              <th>Estado del equipo</th>
-              <th>Descripción</th>
-              <th>Estado del préstamo</th>
-              <th>Responsiva</th>
-              {isAdmin && <th>Acciones</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {visibleDevices.map((device) => {
-              const responsivaFile = device.files?.find((item) => item.type === 'RESPONSIVA');
-              return (
-                <tr key={device.id}>
-                  <td><strong>{device.equipment}</strong></td>
-                  <td>{device.department?.name || 'Sin departamento'}</td>
-                  <td>{device.assignedComputerEquipment?.name || 'Sin asignar'}</td>
-                  <td><span className="folio">{device.serialNumber}</span></td>
-                  <td><span className={`status deviceState ${device.state}`}>{stateLabels[device.state]}</span></td>
-                  <td>{device.description || 'Sin descripción'}</td>
-                  <td>{loanStatusLabels[device.loanStatus]}</td>
-                  <td>
-                    {responsivaFile ? (
-                      <button className="linkAction" type="button" onClick={() => openResponsiva(device)}>Visualizar</button>
-                    ) : (
-                      <span className="mutedText">Sin archivo</span>
-                    )}
-                  </td>
-                  {isAdmin && (
-                    <td className="tableActions">
-                      <button className="ghostAction mini" type="button" onClick={() => openEditModal(device)}>Editar</button>
-                      <button className="dangerAction mini" type="button" onClick={() => handleMarkReturned(device)} disabled={returningId === device.id}>
-                        {returningId === device.id ? 'Entregando...' : 'Entregar'}
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {!loading && visibleDevices.length === 0 && <div className="emptyState">No hay equipos activos para el filtro seleccionado.</div>}
-        {loading && <div className="emptyState">Cargando inventario...</div>}
-      </div>
-
-      <section className="inventoryPanelHeader deliveredPanelHeader">
-        <div>
-          <p className="eyebrow">Panel histórico</p>
-          <h2>Equipos entregados</h2>
-          <p>Este panel conserva quién tuvo asignado cada equipo antes de la entrega. No se mezcla con los préstamos activos.</p>
-        </div>
-      </section>
-
-      <div className="inventoryTableShell deliveredTableShell">
-        <table className="inventoryTable deliveredInventoryTable">
-          <thead>
-            <tr>
-              <th>Fecha de entrega</th>
-              <th>Lo tuvo asignado</th>
-              <th>Departamento anterior</th>
-              <th>Equipo</th>
-              <th>Número de serie</th>
-              <th>Estado al entregar</th>
-              <th>Notas</th>
-              <th>Registró</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleDeliveryHistory.map((item) => (
-              <tr key={item.id}>
-                <td>{formatDate(item.deliveredAt)}</td>
-                <td><strong>{item.previousAssignedUserName}</strong>{item.previousAssignedUserEmail && <small className="cellHint">{item.previousAssignedUserEmail}</small>}</td>
-                <td>{item.previousDepartmentName || 'Sin departamento'}</td>
-                <td>{item.previousComputerEquipmentName || item.equipment}</td>
-                <td><span className="folio">{item.serialNumber}</span></td>
-                <td><span className={`status deviceState ${item.state}`}>{stateLabels[item.state]}</span></td>
-                <td>{item.notes || item.description || 'Sin notas'}</td>
-                <td>{item.deliveredBy?.name || 'Sistema'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!loading && visibleDeliveryHistory.length === 0 && <div className="emptyState">Aún no hay equipos entregados para el filtro seleccionado.</div>}
-      </div>
 
       {isModalOpen && (
         <div className="modalBackdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeModal(); }}>
