@@ -79,6 +79,8 @@ button, input, textarea, select { font: inherit; }
 .deviceState.ASSIGNED { background: var(--steel); }
 .deviceState.MAINTENANCE { background: var(--amber); }
 .deviceState.RETIRED { background: #6b7280; }
+.loanState.ACTIVE { background: var(--green); color: #fff; }
+.loanState.RETURNED { background: #6b7280; color: #fff; }
 .linkAction, .ghostAction { border: 2px solid var(--graphite); background: white; color: var(--graphite); padding: .55rem .75rem; font-weight: 800; cursor: pointer; box-shadow: 3px 3px 0 rgba(17,24,32,.18); }
 .linkAction:hover, .ghostAction:hover { transform: translate(2px,2px); box-shadow: 1px 1px 0 rgba(17,24,32,.18); }
 .linkAction { color: var(--steel); text-transform: uppercase; font-family: 'IBM Plex Mono', monospace; font-size: .72rem; }

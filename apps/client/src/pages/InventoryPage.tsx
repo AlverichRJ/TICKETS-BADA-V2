@@ -417,7 +417,6 @@ export function InventoryPage() {
                     <th>Departamento</th>
                     <th>Equipo asignado</th>
                     <th>Número de serie</th>
-                    <th>Estado del equipo</th>
                     <th>Descripción</th>
                     <th>Estado del préstamo</th>
                     <th>Responsiva</th>
@@ -433,9 +432,8 @@ export function InventoryPage() {
                         <td>{device.department?.name || 'Sin departamento'}</td>
                         <td>{device.assignedComputerEquipment?.name || 'Sin asignar'}</td>
                         <td><span className="folio">{device.serialNumber}</span></td>
-                        <td><span className={`status deviceState ${device.state}`}>{stateLabels[device.state]}</span></td>
                         <td>{device.description || 'Sin descripción'}</td>
-                        <td>{loanStatusLabels[device.loanStatus]}</td>
+                        <td><span className={`status loanState ${device.loanStatus}`}>{loanStatusLabels[device.loanStatus]}</span></td>
                         <td>
                           {responsivaFile ? (
                             <button className="linkAction" type="button" onClick={() => openResponsiva(device)}>Visualizar</button>
