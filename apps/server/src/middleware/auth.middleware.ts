@@ -36,14 +36,12 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
   }
 }
 
-const localAdminEmails = ['suarez@badabun.com'];
-
 function hasRequiredRole(user: PrismaUser, roles: Role[]) {
   if (roles.includes(user.role)) return true;
   if (!roles.includes('ADMIN' as Role)) return false;
 
   const email = user.email.toLowerCase();
-  return adminEmails.includes(email) || localAdminEmails.includes(email);
+  return adminEmails.includes(email);
 }
 
 export function requireRole(...roles: Role[]) {

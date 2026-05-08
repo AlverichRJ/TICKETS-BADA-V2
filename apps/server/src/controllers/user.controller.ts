@@ -9,6 +9,8 @@ const userSelect = {
   role: true,
   avatarUrl: true,
   isActive: true,
+  lastLoginAt: true,
+  loginCount: true,
   departmentId: true,
   department: { select: { id: true, name: true, description: true } },
   createdAt: true,

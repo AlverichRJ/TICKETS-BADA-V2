@@ -19,6 +19,10 @@ export type User = {
   role: Role;
   avatarUrl?: string;
   isActive?: boolean;
+  lastLoginAt?: string | null;
+  loginCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
   departmentId?: string | null;
   department?: Department | null;
 };

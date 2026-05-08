@@ -12,6 +12,14 @@ type DepartmentForm = {
 
 const initialDepartmentForm: DepartmentForm = { name: '', description: '' };
 
+function formatAccessDate(value?: string | null) {
+  if (!value) return 'Sin registro';
+  return new Intl.DateTimeFormat('es-MX', {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(new Date(value));
+}
+
 export function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -110,7 +118,7 @@ export function AdminUsersPage() {
         <div>
           <p className="eyebrow">Módulo 03 · Administración</p>
           <h1>Usuarios</h1>
-          <p className="lead">Edita usuarios registrados, asigna departamentos normalizados y conserva la lista ordenada por área para evitar duplicados o variantes escritas a mano.</p>
+          <p className="lead">Consulta quién accedió al sistema con Google, revisa su último acceso y decide desde este panel si cada persona trabaja como usuario normal o como administrador.</p>
         </div>
       </header>
 
@@ -141,7 +149,7 @@ export function AdminUsersPage() {
             <option value="NONE">Sin departamento</option>
             {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
           </select>
-          <p>La lista se ordena primero por departamento y después por nombre. La asignación se hace con lista desplegable para mantener datos consistentes.</p>
+          <p>La lista contiene cuentas creadas por accesos reales al sistema. El rol guardado aquí define si la persona opera como usuario normal o como administrador.</p>
         </aside>
       </section>
 
@@ -151,6 +159,8 @@ export function AdminUsersPage() {
             <tr>
               <th>Nombre</th>
               <th>Correo</th>
+              <th>Último acceso</th>
+              <th>Accesos</th>
               <th>Departamento</th>
               <th>Rol</th>
               <th>Estado</th>
@@ -164,6 +174,8 @@ export function AdminUsersPage() {
                   <input value={userItem.name} onChange={(event) => updateUserLocal(userItem.id, { name: event.target.value })} />
                 </td>
                 <td><span className="folio">{userItem.email}</span></td>
+                <td><span className="accessStamp">{formatAccessDate(userItem.lastLoginAt)}</span></td>
+                <td><span className="status accessCount">{userItem.loginCount || 0}</span></td>
                 <td>
                   <select value={userItem.departmentId || ''} onChange={(event) => {
                     const departmentId = event.target.value || null;

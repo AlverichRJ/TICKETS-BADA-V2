@@ -242,7 +242,7 @@ button:disabled { opacity: .55; cursor: not-allowed; transform: none !important;
 }
 
 .usersAdminTable {
-  min-width: 1080px;
+  min-width: 1260px;
 }
 
 .usersAdminTable td {
@@ -258,6 +258,24 @@ button:disabled { opacity: .55; cursor: not-allowed; transform: none !important;
 .usersAdminTable td:nth-child(2) {
   max-width: 260px;
   overflow-wrap: anywhere;
+}
+
+.accessStamp {
+  display: inline-flex;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #26313b;
+  background: rgba(71, 107, 145, .10);
+  border: 1px solid rgba(17, 24, 32, .22);
+  padding: .36rem .5rem;
+}
+
+.accessCount {
+  background: var(--green);
+  min-width: 2.1rem;
+  text-align: center;
 }
 
 @media (max-width: 900px) {

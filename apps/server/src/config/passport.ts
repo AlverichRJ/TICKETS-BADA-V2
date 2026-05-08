@@ -19,11 +19,18 @@ passport.use(
         const name = profile.displayName || email.split('@')[0];
         const avatarUrl = profile.photos?.[0]?.value;
         const role = adminEmails.includes(email) ? Role.ADMIN : Role.USER;
+        const lastLoginAt = new Date();
 
         const user = await prisma.user.upsert({
           where: { email },
-          update: { googleId: profile.id, name, avatarUrl, role },
-          create: { email, googleId: profile.id, name, avatarUrl, role }
+          update: {
+            googleId: profile.id,
+            name,
+            avatarUrl,
+            lastLoginAt,
+            loginCount: { increment: 1 }
+          },
+          create: { email, googleId: profile.id, name, avatarUrl, role, lastLoginAt, loginCount: 1 }
         });
 
         return done(null, user);
