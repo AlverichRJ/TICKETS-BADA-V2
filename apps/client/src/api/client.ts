@@ -29,15 +29,18 @@ export type User = {
 export type Ticket = {
   id: string;
   publicId: string;
+  leaderName?: string | null;
+  reviewedEquipment?: string | null;
   failureDescription: string;
-  deviceSpecs?: string;
+  deviceSpecs?: string | null;
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
   status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED';
   reportedAt: string;
-  resolvedAt?: string;
+  resolvedAt?: string | null;
+  technicalNotes?: string | null;
   creator: User;
-  leader?: User;
-  device?: Device;
+  leader?: User | null;
+  device?: Device | null;
 };
 export type DeviceFile = {
   id: string;

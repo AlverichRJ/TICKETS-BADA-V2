@@ -23,10 +23,13 @@ export async function createTicket(user: User, input: any) {
         publicId,
         creatorId: user.id,
         leaderId: input.leaderId || null,
+        leaderName: input.leaderName || null,
         deviceId: input.deviceId || null,
+        reviewedEquipment: input.reviewedEquipment || null,
         failureDescription: input.failureDescription,
         deviceSpecs: input.deviceSpecs || null,
-        priority: input.priority
+        priority: input.priority,
+        technicalNotes: input.technicalNotes || null
       }
     });
 
@@ -64,7 +67,9 @@ export async function updateTicket(user: User, id: string, input: any) {
       where: { id },
       data: {
         leaderId: input.leaderId === undefined ? undefined : input.leaderId,
+        leaderName: input.leaderName,
         deviceId: input.deviceId === undefined ? undefined : input.deviceId,
+        reviewedEquipment: input.reviewedEquipment,
         failureDescription: input.failureDescription,
         deviceSpecs: input.deviceSpecs,
         priority: input.priority,

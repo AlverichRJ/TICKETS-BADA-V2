@@ -159,8 +159,10 @@ model Ticket {
   creator       User           @relation("TicketCreator", fields: [creatorId], references: [id], onDelete: Restrict)
   leaderId      String?
   leader        User?          @relation("TicketLeader", fields: [leaderId], references: [id], onDelete: SetNull)
+  leaderName    String?
   deviceId      String?
   device        Device?        @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  reviewedEquipment String?
   failureDescription String
   deviceSpecs   String?
   reportedAt    DateTime       @default(now())

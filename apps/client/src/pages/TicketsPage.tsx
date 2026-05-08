@@ -1,6 +1,6 @@
 /**
  * Diseño elegido: Brutalismo administrativo suizo.
- * Listado de tickets como tablero operativo con folios, estados y prioridades legibles.
+ * Listado de tickets como matriz operativa con ID, líder, equipo, fallo, specs, fechas, prioridad, estatus y notas.
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -10,6 +10,19 @@ import { canManageAdminModules } from '../lib/permissions';
 
 const statusLabels = { PENDING: 'Pendiente', IN_PROGRESS: 'En proceso', RESOLVED: 'Resuelto' };
 const priorityLabels = { HIGH: 'Alta', MEDIUM: 'Media', LOW: 'Baja' };
+
+function formatDateTime(value?: string | null) {
+  if (!value) return 'Pendiente';
+  return new Date(value).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function getTicketLeader(ticket: Ticket) {
+  return ticket.leaderName || ticket.leader?.name || ticket.creator?.name || 'Sin líder';
+}
+
+function getTicketEquipment(ticket: Ticket) {
+  return ticket.reviewedEquipment || ticket.device?.assignedComputerEquipment?.name || ticket.device?.equipment || 'Sin equipo capturado';
+}
 
 export function TicketsPage() {
   const { user } = useAuth();
@@ -33,13 +46,30 @@ export function TicketsPage() {
   return (
     <section className="pageStack">
       <header className="pageHeader"><div><p className="eyebrow">Módulo 01</p><h1>Tickets</h1></div><Link className="primaryAction compact" to="/tickets/new">Crear ticket</Link></header>
-      <div className="ticketBoard">
+      <div className="ticketBoard ticketBoard--matrix">
         {tickets.map(ticket => (
-          <article className="ticketCard" key={ticket.id}>
+          <article className="ticketCard ticketRecord" key={ticket.id}>
             <div className="cardTop"><span className="folio">{ticket.publicId}</span><span className={`status ${ticket.status}`}>{statusLabels[ticket.status]}</span></div>
-            <h3>{ticket.failureDescription}</h3>
-            <p>{ticket.deviceSpecs || 'Sin especificaciones capturadas.'}</p>
-            <div className="metaLine"><span>Prioridad {priorityLabels[ticket.priority]}</span><span>{ticket.creator?.name}</span><span>{new Date(ticket.reportedAt).toLocaleDateString()}</span></div>
+            <div className="ticketFieldGrid">
+              <div><span>Líder</span><strong>{getTicketLeader(ticket)}</strong></div>
+              <div><span>Equipo a revisar</span><strong>{getTicketEquipment(ticket)}</strong></div>
+              <div><span>Fecha de reporte</span><strong>{formatDateTime(ticket.reportedAt)}</strong></div>
+              <div><span>Prioridad</span><strong>{priorityLabels[ticket.priority]}</strong></div>
+              <div><span>Fecha de resolución</span><strong>{formatDateTime(ticket.resolvedAt)}</strong></div>
+            </div>
+            <div className="ticketNarrative">
+              <span>Descripción del fallo</span>
+              <p>{ticket.failureDescription}</p>
+            </div>
+            <div className="ticketNarrative">
+              <span>Especificaciones PC</span>
+              <p>{ticket.deviceSpecs || 'Sin especificaciones capturadas.'}</p>
+            </div>
+            <div className="ticketNarrative ticketNarrative--notes">
+              <span>Notas técnicas</span>
+              <p>{ticket.technicalNotes || 'Sin notas técnicas capturadas.'}</p>
+            </div>
+            <div className="metaLine"><span>Reportó {ticket.creator?.name}</span><span>{ticket.creator?.email}</span></div>
             {canResolveTickets && ticket.status !== 'RESOLVED' && (
               <div className="ticketActions">
                 <button className="resolveAction" type="button" onClick={() => markAsResolved(ticket)} disabled={resolvingTicketId === ticket.id}>
