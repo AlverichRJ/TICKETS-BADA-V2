@@ -12,6 +12,7 @@ import { ticketRoutes } from './routes/ticket.routes.js';
 import { deviceRoutes } from './routes/device.routes.js';
 import { userRoutes } from './routes/user.routes.js';
 import { fileRoutes } from './routes/file.routes.js';
+import { computerEquipmentRoutes } from './routes/computer-equipment.routes.js';
 
 export function createApp() {
   const app = express();
@@ -32,6 +33,7 @@ export function createApp() {
   app.use('/api/devices', deviceRoutes);
   app.use('/api/users', userRoutes);
   app.use('/api/files', fileRoutes);
+  app.use('/api/computer-equipment', computerEquipmentRoutes);
 
   app.use(errorMiddleware);
 

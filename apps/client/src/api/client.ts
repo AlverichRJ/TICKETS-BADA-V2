@@ -36,6 +36,12 @@ export type DeviceFile = {
   type: 'RESPONSIVA' | 'INE' | 'OTHER';
   uploadedAt: string;
 };
+export type ComputerEquipment = {
+  id: string;
+  name: string;
+  description?: string | null;
+  isActive?: boolean;
+};
 export type Device = {
   id: string;
   equipment: string;
@@ -44,5 +50,6 @@ export type Device = {
   loanStatus: 'ACTIVE' | 'RETURNED';
   description?: string;
   assignedUser?: User | null;
+  assignedComputerEquipment?: ComputerEquipment | null;
   files?: DeviceFile[];
 };

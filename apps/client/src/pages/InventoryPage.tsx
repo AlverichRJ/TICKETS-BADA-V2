@@ -1,9 +1,9 @@
 /**
  * Diseño elegido: Brutalismo administrativo suizo.
- * Inventario operativo con tabla tipo hoja de resguardo, alta solo ADMIN y responsivas visibles con ruta autenticada.
+ * Inventario operativo con tabla tipo hoja de resguardo, alta solo ADMIN, catálogo de equipos de cómputo y responsivas visibles con ruta autenticada.
  */
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { api, type Device, type User } from '../api/client';
+import { FormEvent, useEffect, useState } from 'react';
+import { api, type ComputerEquipment, type Device } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { canManageInventory } from '../lib/permissions';
 
@@ -23,7 +23,7 @@ const loanStatusLabels: Record<Device['loanStatus'], string> = {
 
 type InventoryForm = {
   equipment: string;
-  assignedUserId: string;
+  assignedComputerEquipmentId: string;
   serialNumber: string;
   state: Device['state'];
   description: string;
@@ -32,23 +32,36 @@ type InventoryForm = {
 
 const initialForm: InventoryForm = {
   equipment: '',
-  assignedUserId: '',
+  assignedComputerEquipmentId: '',
   serialNumber: '',
   state: 'AVAILABLE',
   description: '',
   loanStatus: 'ACTIVE'
 };
 
+type CatalogForm = {
+  name: string;
+  description: string;
+};
+
+const initialCatalogForm: CatalogForm = {
+  name: '',
+  description: ''
+};
+
 export function InventoryPage() {
   const { user } = useAuth();
   const isAdmin = canManageInventory(user);
   const [devices, setDevices] = useState<Device[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [computerEquipment, setComputerEquipment] = useState<ComputerEquipment[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [form, setForm] = useState<InventoryForm>(initialForm);
+  const [catalogForm, setCatalogForm] = useState<CatalogForm>(initialCatalogForm);
   const [responsiva, setResponsiva] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingCatalog, setSavingCatalog] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function loadDevices() {
@@ -63,37 +76,57 @@ export function InventoryPage() {
     }
   }
 
+  async function loadComputerEquipment() {
+    try {
+      const { data } = await api.get('/api/computer-equipment');
+      setComputerEquipment(data.data);
+    } catch {
+      setComputerEquipment([]);
+    }
+  }
+
   useEffect(() => {
     loadDevices();
+    loadComputerEquipment();
   }, []);
-
-  useEffect(() => {
-    if (!isAdmin) return;
-    api.get('/api/users')
-      .then(({ data }) => setUsers(data.data))
-      .catch(() => setUsers([]));
-  }, [isAdmin]);
-
-  const assignableUsers = useMemo(() => {
-    const seen = new Set<string>();
-    return users.filter((item) => {
-      const email = item.email.toLowerCase();
-      if (item.isActive === false || seen.has(email)) return false;
-      seen.add(email);
-      return true;
-    });
-  }, [users]);
 
   function updateField<K extends keyof InventoryForm>(key: K, value: InventoryForm[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
   function closeModal() {
-    if (saving) return;
+    if (saving || savingCatalog) return;
     setIsModalOpen(false);
+    setIsCatalogOpen(false);
     setForm(initialForm);
+    setCatalogForm(initialCatalogForm);
     setResponsiva(null);
     setError(null);
+  }
+
+  async function handleCatalogSubmit() {
+    if (!isAdmin || !catalogForm.name.trim()) return;
+    setSavingCatalog(true);
+    setError(null);
+
+    try {
+      const payload = {
+        name: catalogForm.name.trim(),
+        description: catalogForm.description.trim() || null
+      };
+
+      const { data } = await api.post('/api/computer-equipment', payload);
+      const createdEquipment: ComputerEquipment = data.data;
+      await loadComputerEquipment();
+      updateField('assignedComputerEquipmentId', createdEquipment.id);
+      setCatalogForm(initialCatalogForm);
+      setIsCatalogOpen(false);
+    } catch (requestError: any) {
+      const message = requestError?.response?.data?.error || 'No fue posible registrar el equipo de cómputo. Revisa que el nombre no esté vacío o duplicado.';
+      setError(message);
+    } finally {
+      setSavingCatalog(false);
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -105,7 +138,8 @@ export function InventoryPage() {
     try {
       const payload = {
         equipment: form.equipment.trim(),
-        assignedUserId: form.assignedUserId || null,
+        assignedUserId: null,
+        assignedComputerEquipmentId: form.assignedComputerEquipmentId || null,
         serialNumber: form.serialNumber.trim(),
         state: form.state,
         description: form.description.trim() || null,
@@ -119,16 +153,16 @@ export function InventoryPage() {
         const formData = new FormData();
         formData.append('file', responsiva);
         formData.append('type', 'RESPONSIVA');
-        if (form.assignedUserId) formData.append('userId', form.assignedUserId);
         await api.post(`/api/devices/${createdDevice.id}/files`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
       }
 
       await loadDevices();
+      await loadComputerEquipment();
       closeModal();
     } catch (requestError: any) {
-      const message = requestError?.response?.data?.error || 'No fue posible guardar el equipo. Revisa campos obligatorios y número de serie.';
+      const message = requestError?.response?.data?.error || 'No fue posible guardar el registro. Revisa campos obligatorios y número de serie.';
       setError(message);
     } finally {
       setSaving(false);
@@ -180,7 +214,7 @@ export function InventoryPage() {
               return (
                 <tr key={device.id}>
                   <td><strong>{device.equipment}</strong></td>
-                  <td>{device.assignedUser?.name || 'Sin asignar'}</td>
+                  <td>{device.assignedComputerEquipment?.name || 'Sin asignar'}</td>
                   <td><span className="folio">{device.serialNumber}</span></td>
                   <td><span className={`status deviceState ${device.state}`}>{stateLabels[device.state]}</span></td>
                   <td>{device.description || 'Sin descripción'}</td>
@@ -209,22 +243,41 @@ export function InventoryPage() {
                 <p className="eyebrow">Alta administrativa</p>
                 <h2 id="inventory-create-title">Agregar equipo</h2>
               </div>
-              <button className="ghostAction" type="button" onClick={closeModal} disabled={saving}>Cerrar</button>
+              <button className="ghostAction" type="button" onClick={closeModal} disabled={saving || savingCatalog}>Cerrar</button>
             </div>
 
             <form className="adminForm inventoryForm" onSubmit={handleSubmit}>
               <label>
                 Nombre
-                <input value={form.equipment} onChange={(event) => updateField('equipment', event.target.value)} required minLength={2} placeholder="Ej. Laptop Dell Latitude" />
+                <input value={form.equipment} onChange={(event) => updateField('equipment', event.target.value)} required minLength={2} placeholder="Ej. Jorge Suárez" />
               </label>
 
-              <label>
-                Equipo asignado
-                <select value={form.assignedUserId} onChange={(event) => updateField('assignedUserId', event.target.value)}>
-                  <option value="">Sin asignar</option>
-                  {assignableUsers.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.email}</option>)}
-                </select>
-              </label>
+              <div className="catalogSelectField">
+                <label>
+                  Equipo asignado
+                  <select value={form.assignedComputerEquipmentId} onChange={(event) => updateField('assignedComputerEquipmentId', event.target.value)}>
+                    <option value="">Sin asignar</option>
+                    {computerEquipment.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  </select>
+                </label>
+                <button className="ghostAction catalogButton" type="button" onClick={() => setIsCatalogOpen((current) => !current)}>
+                  {isCatalogOpen ? 'Ocultar alta de equipo' : 'Agregar equipo de cómputo'}
+                </button>
+              </div>
+
+              {isCatalogOpen && (
+                <div className="computerCatalogPanel">
+                  <label>
+                    Equipo de cómputo
+                    <input value={catalogForm.name} onChange={(event) => setCatalogForm((current) => ({ ...current, name: event.target.value }))} required minLength={2} placeholder="Ej. Laptop Dell Latitude 5420" />
+                  </label>
+                  <label>
+                    Detalle opcional
+                    <input value={catalogForm.description} onChange={(event) => setCatalogForm((current) => ({ ...current, description: event.target.value }))} placeholder="Ej. RAM 16GB, SSD 512GB, cargador incluido" />
+                  </label>
+                  <button className="primaryAction compact" type="button" onClick={handleCatalogSubmit} disabled={savingCatalog || !catalogForm.name.trim()}>{savingCatalog ? 'Registrando...' : 'Guardar equipo de cómputo'}</button>
+                </div>
+              )}
 
               <label>
                 Número de serie
@@ -261,8 +314,8 @@ export function InventoryPage() {
               </label>
 
               <div className="formActions wideField">
-                <button className="ghostAction" type="button" onClick={closeModal} disabled={saving}>Cancelar</button>
-                <button className="primaryAction compact" type="submit" disabled={saving}>{saving ? 'Guardando...' : 'Guardar equipo'}</button>
+                <button className="ghostAction" type="button" onClick={closeModal} disabled={saving || savingCatalog}>Cancelar</button>
+                <button className="primaryAction compact" type="submit" disabled={saving || savingCatalog}>{saving ? 'Guardando...' : 'Guardar registro'}</button>
               </div>
             </form>
           </section>

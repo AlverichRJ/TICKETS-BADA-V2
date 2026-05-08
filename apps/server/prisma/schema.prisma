@@ -73,6 +73,8 @@ model Device {
   id          String      @id @default(cuid())
   assignedUserId String?
   assignedUser   User?   @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
+  assignedComputerEquipmentId String?
+  assignedComputerEquipment   ComputerEquipment? @relation(fields: [assignedComputerEquipmentId], references: [id], onDelete: SetNull)
   equipment   String
   serialNumber String    @unique
   state       DeviceState @default(AVAILABLE)
@@ -85,7 +87,19 @@ model Device {
   files   File[]
 
   @@index([assignedUserId])
+  @@index([assignedComputerEquipmentId])
   @@index([serialNumber])
+}
+
+model ComputerEquipment {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  assignedDevices Device[]
 }
 
 model Ticket {
