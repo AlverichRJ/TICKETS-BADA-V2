@@ -12,13 +12,13 @@ import { NewTicketPage } from './pages/NewTicketPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
-import { canManageInventory } from './lib/permissions';
+import { canManageAdminModules } from './lib/permissions';
 
 function Protected({ children, adminOnly = false }: { children: JSX.Element; adminOnly?: boolean }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="boot">Cargando sesión...</div>;
   if (!user) return <Navigate to="/login" replace />;
-  if (adminOnly && !canManageInventory(user)) return <Navigate to="/tickets" replace />;
+  if (adminOnly && !canManageAdminModules(user)) return <Navigate to="/tickets" replace />;
   return children;
 }
 
@@ -31,7 +31,7 @@ export default function App() {
         <Route index element={<Navigate to="/tickets" replace />} />
         <Route path="tickets" element={<TicketsPage />} />
         <Route path="tickets/new" element={<NewTicketPage />} />
-        <Route path="inventory" element={<InventoryPage />} />
+        <Route path="inventory" element={<Protected adminOnly><InventoryPage /></Protected>} />
         <Route path="admin/users" element={<Protected adminOnly><AdminUsersPage /></Protected>} />
       </Route>
     </Routes>
