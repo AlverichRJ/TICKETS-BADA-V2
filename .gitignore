@@ -1,0 +1,12 @@
+node_modules
+.env
+.env.*
+!.env.example
+dist
+build
+coverage
+uploads/*
+!uploads/.gitkeep
+apps/server/prisma/migrations/dev.db
+.DS_Store
+npm-debug.log*

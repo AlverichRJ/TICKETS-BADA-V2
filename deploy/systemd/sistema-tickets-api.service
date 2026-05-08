@@ -1,0 +1,16 @@
+[Unit]
+Description=Sistema Tickets Inventario API
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/sistema-tickets-inventario/apps/server
+EnvironmentFile=/opt/sistema-tickets-inventario/.env
+ExecStart=/usr/bin/node dist/src/index.js
+Restart=always
+RestartSec=5
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target
