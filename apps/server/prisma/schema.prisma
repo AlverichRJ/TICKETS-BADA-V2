@@ -59,6 +59,8 @@ model User {
   role      Role     @default(USER)
   avatarUrl String?
   isActive  Boolean  @default(true)
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -67,6 +69,8 @@ model User {
   assignedDevices Device[]
   files File[]
   auditLogs TicketAudit[]
+
+  @@index([departmentId])
 }
 
 model Device {
@@ -75,6 +79,8 @@ model Device {
   assignedUser   User?   @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
   assignedComputerEquipmentId String?
   assignedComputerEquipment   ComputerEquipment? @relation(fields: [assignedComputerEquipmentId], references: [id], onDelete: SetNull)
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   equipment   String
   serialNumber String    @unique
   state       DeviceState @default(AVAILABLE)
@@ -88,6 +94,7 @@ model Device {
 
   @@index([assignedUserId])
   @@index([assignedComputerEquipmentId])
+  @@index([departmentId])
   @@index([serialNumber])
 }
 
@@ -100,6 +107,18 @@ model ComputerEquipment {
   updatedAt   DateTime @updatedAt
 
   assignedDevices Device[]
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users   User[]
+  devices Device[]
 }
 
 model Ticket {

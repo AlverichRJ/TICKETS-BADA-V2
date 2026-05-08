@@ -1,9 +1,9 @@
 /**
  * Diseño elegido: Brutalismo administrativo suizo.
- * Inventario operativo con tabla tipo hoja de resguardo, alta solo ADMIN, catálogo de equipos de cómputo y responsivas visibles con ruta autenticada.
+ * Inventario operativo con tabla tipo hoja de resguardo, alta solo ADMIN, catálogo de equipos de cómputo, departamentos normalizados y responsivas visibles con ruta autenticada.
  */
-import { FormEvent, useEffect, useState } from 'react';
-import { api, type ComputerEquipment, type Device } from '../api/client';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { api, type ComputerEquipment, type Department, type Device } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { canManageInventory } from '../lib/permissions';
 
@@ -24,6 +24,7 @@ const loanStatusLabels: Record<Device['loanStatus'], string> = {
 type InventoryForm = {
   equipment: string;
   assignedComputerEquipmentId: string;
+  departmentId: string;
   serialNumber: string;
   state: Device['state'];
   description: string;
@@ -33,6 +34,7 @@ type InventoryForm = {
 const initialForm: InventoryForm = {
   equipment: '',
   assignedComputerEquipmentId: '',
+  departmentId: '',
   serialNumber: '',
   state: 'AVAILABLE',
   description: '',
@@ -54,14 +56,19 @@ export function InventoryPage() {
   const isAdmin = canManageInventory(user);
   const [devices, setDevices] = useState<Device[]>([]);
   const [computerEquipment, setComputerEquipment] = useState<ComputerEquipment[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departmentFilter, setDepartmentFilter] = useState('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+  const [isDepartmentCatalogOpen, setIsDepartmentCatalogOpen] = useState(false);
   const [form, setForm] = useState<InventoryForm>(initialForm);
   const [catalogForm, setCatalogForm] = useState<CatalogForm>(initialCatalogForm);
+  const [departmentForm, setDepartmentForm] = useState<CatalogForm>(initialCatalogForm);
   const [responsiva, setResponsiva] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingCatalog, setSavingCatalog] = useState(false);
+  const [savingDepartment, setSavingDepartment] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function loadDevices() {
@@ -85,21 +92,43 @@ export function InventoryPage() {
     }
   }
 
+  async function loadDepartments() {
+    try {
+      const { data } = await api.get('/api/departments');
+      setDepartments(data.data);
+    } catch {
+      setDepartments([]);
+    }
+  }
+
   useEffect(() => {
     loadDevices();
     loadComputerEquipment();
+    loadDepartments();
   }, []);
+
+  const visibleDevices = useMemo(() => {
+    return [...devices]
+      .filter((device) => departmentFilter === 'ALL' || (departmentFilter === 'NONE' ? !device.departmentId : device.departmentId === departmentFilter))
+      .sort((a, b) => {
+        const departmentA = a.department?.name || 'ZZZ Sin departamento';
+        const departmentB = b.department?.name || 'ZZZ Sin departamento';
+        return departmentA.localeCompare(departmentB, 'es') || a.equipment.localeCompare(b.equipment, 'es');
+      });
+  }, [departmentFilter, devices]);
 
   function updateField<K extends keyof InventoryForm>(key: K, value: InventoryForm[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
   function closeModal() {
-    if (saving || savingCatalog) return;
+    if (saving || savingCatalog || savingDepartment) return;
     setIsModalOpen(false);
     setIsCatalogOpen(false);
+    setIsDepartmentCatalogOpen(false);
     setForm(initialForm);
     setCatalogForm(initialCatalogForm);
+    setDepartmentForm(initialCatalogForm);
     setResponsiva(null);
     setError(null);
   }
@@ -129,6 +158,31 @@ export function InventoryPage() {
     }
   }
 
+  async function handleDepartmentSubmit() {
+    if (!isAdmin || !departmentForm.name.trim()) return;
+    setSavingDepartment(true);
+    setError(null);
+
+    try {
+      const payload = {
+        name: departmentForm.name.trim(),
+        description: departmentForm.description.trim() || null
+      };
+
+      const { data } = await api.post('/api/departments', payload);
+      const createdDepartment: Department = data.data;
+      await loadDepartments();
+      updateField('departmentId', createdDepartment.id);
+      setDepartmentForm(initialCatalogForm);
+      setIsDepartmentCatalogOpen(false);
+    } catch (requestError: any) {
+      const message = requestError?.response?.data?.error || 'No fue posible registrar el departamento. Revisa que el nombre no esté vacío o duplicado.';
+      setError(message);
+    } finally {
+      setSavingDepartment(false);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!isAdmin) return;
@@ -140,6 +194,7 @@ export function InventoryPage() {
         equipment: form.equipment.trim(),
         assignedUserId: null,
         assignedComputerEquipmentId: form.assignedComputerEquipmentId || null,
+        departmentId: form.departmentId || null,
         serialNumber: form.serialNumber.trim(),
         state: form.state,
         description: form.description.trim() || null,
@@ -160,6 +215,7 @@ export function InventoryPage() {
 
       await loadDevices();
       await loadComputerEquipment();
+      await loadDepartments();
       closeModal();
     } catch (requestError: any) {
       const message = requestError?.response?.data?.error || 'No fue posible guardar el registro. Revisa campos obligatorios y número de serie.';
@@ -195,11 +251,24 @@ export function InventoryPage() {
 
       {error && <div className="alertBox">{error}</div>}
 
+      <div className="tableToolbar">
+        <label>
+          Ordenar / filtrar por departamento
+          <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)}>
+            <option value="ALL">Todos los departamentos</option>
+            <option value="NONE">Sin departamento</option>
+            {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
+          </select>
+        </label>
+        <span className="readOnlyNotice">{visibleDevices.length} registros visibles</span>
+      </div>
+
       <div className="inventoryTableShell">
         <table className="inventoryTable">
           <thead>
             <tr>
               <th>Nombre</th>
+              <th>Departamento</th>
               <th>Equipo asignado</th>
               <th>Número de serie</th>
               <th>Estado del equipo</th>
@@ -209,11 +278,12 @@ export function InventoryPage() {
             </tr>
           </thead>
           <tbody>
-            {devices.map((device) => {
+            {visibleDevices.map((device) => {
               const responsivaFile = device.files?.find((item) => item.type === 'RESPONSIVA');
               return (
                 <tr key={device.id}>
                   <td><strong>{device.equipment}</strong></td>
+                  <td>{device.department?.name || 'Sin departamento'}</td>
                   <td>{device.assignedComputerEquipment?.name || 'Sin asignar'}</td>
                   <td><span className="folio">{device.serialNumber}</span></td>
                   <td><span className={`status deviceState ${device.state}`}>{stateLabels[device.state]}</span></td>
@@ -231,7 +301,7 @@ export function InventoryPage() {
             })}
           </tbody>
         </table>
-        {!loading && devices.length === 0 && <div className="emptyState">Aún no hay equipos registrados.</div>}
+        {!loading && visibleDevices.length === 0 && <div className="emptyState">Aún no hay equipos para el filtro seleccionado.</div>}
         {loading && <div className="emptyState">Cargando inventario...</div>}
       </div>
 
@@ -243,7 +313,7 @@ export function InventoryPage() {
                 <p className="eyebrow">Alta administrativa</p>
                 <h2 id="inventory-create-title">Agregar equipo</h2>
               </div>
-              <button className="ghostAction" type="button" onClick={closeModal} disabled={saving || savingCatalog}>Cerrar</button>
+              <button className="ghostAction" type="button" onClick={closeModal} disabled={saving || savingCatalog || savingDepartment}>Cerrar</button>
             </div>
 
             <form className="adminForm inventoryForm" onSubmit={handleSubmit}>
@@ -251,6 +321,19 @@ export function InventoryPage() {
                 Nombre
                 <input value={form.equipment} onChange={(event) => updateField('equipment', event.target.value)} required minLength={2} placeholder="Ej. Jorge Suárez" />
               </label>
+
+              <div className="catalogSelectField">
+                <label>
+                  Departamento
+                  <select value={form.departmentId} onChange={(event) => updateField('departmentId', event.target.value)}>
+                    <option value="">Sin departamento</option>
+                    {departments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  </select>
+                </label>
+                <button className="ghostAction catalogButton" type="button" onClick={() => setIsDepartmentCatalogOpen((current) => !current)}>
+                  {isDepartmentCatalogOpen ? 'Ocultar alta de departamento' : 'Agregar departamento'}
+                </button>
+              </div>
 
               <div className="catalogSelectField">
                 <label>
@@ -264,6 +347,20 @@ export function InventoryPage() {
                   {isCatalogOpen ? 'Ocultar alta de equipo' : 'Agregar equipo de cómputo'}
                 </button>
               </div>
+
+              {isDepartmentCatalogOpen && (
+                <div className="computerCatalogPanel">
+                  <label>
+                    Departamento
+                    <input value={departmentForm.name} onChange={(event) => setDepartmentForm((current) => ({ ...current, name: event.target.value }))} required minLength={2} placeholder="Ej. Producción" />
+                  </label>
+                  <label>
+                    Detalle opcional
+                    <input value={departmentForm.description} onChange={(event) => setDepartmentForm((current) => ({ ...current, description: event.target.value }))} placeholder="Ej. Operación y edición" />
+                  </label>
+                  <button className="primaryAction compact" type="button" onClick={handleDepartmentSubmit} disabled={savingDepartment || !departmentForm.name.trim()}>{savingDepartment ? 'Registrando...' : 'Guardar departamento'}</button>
+                </div>
+              )}
 
               {isCatalogOpen && (
                 <div className="computerCatalogPanel">
@@ -314,8 +411,8 @@ export function InventoryPage() {
               </label>
 
               <div className="formActions wideField">
-                <button className="ghostAction" type="button" onClick={closeModal} disabled={saving || savingCatalog}>Cancelar</button>
-                <button className="primaryAction compact" type="submit" disabled={saving || savingCatalog}>{saving ? 'Guardando...' : 'Guardar registro'}</button>
+                <button className="ghostAction" type="button" onClick={closeModal} disabled={saving || savingCatalog || savingDepartment}>Cancelar</button>
+                <button className="primaryAction compact" type="submit" disabled={saving || savingCatalog || savingDepartment}>{saving ? 'Guardando...' : 'Guardar registro'}</button>
               </div>
             </form>
           </section>

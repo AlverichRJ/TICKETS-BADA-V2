@@ -3,8 +3,9 @@
  * El layout concentra navegación lateral, identidad de sistema local y jerarquía operativa.
  */
 import { NavLink, Outlet } from 'react-router-dom';
-import { Boxes, LogOut, PlusCircle, Ticket } from 'lucide-react';
+import { Boxes, LogOut, PlusCircle, Ticket, UsersRound } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { canManageInventory } from '../lib/permissions';
 
 export function DashboardLayout() {
   const { user, logout } = useAuth();
@@ -16,6 +17,7 @@ export function DashboardLayout() {
           <NavLink to="/tickets"><Ticket size={18}/> Tickets</NavLink>
           <NavLink to="/tickets/new"><PlusCircle size={18}/> Nuevo ticket</NavLink>
           <NavLink to="/inventory"><Boxes size={18}/> Inventario</NavLink>
+          {canManageInventory(user) && <NavLink to="/admin/users"><UsersRound size={18}/> Usuarios</NavLink>}
         </nav>
         <div className="sessionCard">
           <span>{user?.role}</span>

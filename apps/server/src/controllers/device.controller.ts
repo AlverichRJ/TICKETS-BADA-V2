@@ -3,13 +3,14 @@ import { prisma } from '../config/prisma.js';
 import { sendOk } from '../utils/http.js';
 
 const include = {
-  assignedUser: { select: { id: true, name: true, email: true } },
+  assignedUser: { select: { id: true, name: true, email: true, departmentId: true, department: { select: { id: true, name: true } } } },
   assignedComputerEquipment: { select: { id: true, name: true, description: true } },
+  department: { select: { id: true, name: true, description: true } },
   files: true
 };
 
 export async function index(_req: Request, res: Response) {
-  const devices = await prisma.device.findMany({ include, orderBy: { createdAt: 'desc' } });
+  const devices = await prisma.device.findMany({ include, orderBy: [{ department: { name: 'asc' } }, { createdAt: 'desc' }] });
   return sendOk(res, devices);
 }
 

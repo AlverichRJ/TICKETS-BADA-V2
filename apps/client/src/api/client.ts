@@ -6,6 +6,12 @@ export const api = axios.create({
 });
 
 export type Role = 'ADMIN' | 'USER';
+export type Department = {
+  id: string;
+  name: string;
+  description?: string | null;
+  isActive?: boolean;
+};
 export type User = {
   id: string;
   name: string;
@@ -13,6 +19,8 @@ export type User = {
   role: Role;
   avatarUrl?: string;
   isActive?: boolean;
+  departmentId?: string | null;
+  department?: Department | null;
 };
 export type Ticket = {
   id: string;
@@ -51,5 +59,7 @@ export type Device = {
   description?: string;
   assignedUser?: User | null;
   assignedComputerEquipment?: ComputerEquipment | null;
+  departmentId?: string | null;
+  department?: Department | null;
   files?: DeviceFile[];
 };
