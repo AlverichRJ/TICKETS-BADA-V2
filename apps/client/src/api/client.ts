@@ -6,7 +6,14 @@ export const api = axios.create({
 });
 
 export type Role = 'ADMIN' | 'USER';
-export type User = { id: string; name: string; email: string; role: Role; avatarUrl?: string };
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  avatarUrl?: string;
+  isActive?: boolean;
+};
 export type Ticket = {
   id: string;
   publicId: string;
@@ -20,6 +27,15 @@ export type Ticket = {
   leader?: User;
   device?: Device;
 };
+export type DeviceFile = {
+  id: string;
+  originalName: string;
+  storedName: string;
+  mimeType: string;
+  sizeBytes: number;
+  type: 'RESPONSIVA' | 'INE' | 'OTHER';
+  uploadedAt: string;
+};
 export type Device = {
   id: string;
   equipment: string;
@@ -27,5 +43,6 @@ export type Device = {
   state: 'AVAILABLE' | 'ASSIGNED' | 'MAINTENANCE' | 'RETIRED';
   loanStatus: 'ACTIVE' | 'RETURNED';
   description?: string;
-  assignedUser?: User;
+  assignedUser?: User | null;
+  files?: DeviceFile[];
 };

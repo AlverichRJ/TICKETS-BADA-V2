@@ -9,8 +9,8 @@ import * as fileController from '../controllers/file.controller.js';
 
 export const deviceRoutes = Router();
 
-deviceRoutes.use(authenticate, requireRole(Role.ADMIN));
+deviceRoutes.use(authenticate);
 deviceRoutes.get('/', deviceController.index);
-deviceRoutes.post('/', validateBody(createDeviceSchema), deviceController.create);
-deviceRoutes.patch('/:id', validateBody(updateDeviceSchema), deviceController.update);
-deviceRoutes.post('/:deviceId/files', upload.single('file'), fileController.uploadDeviceFile);
+deviceRoutes.post('/', requireRole(Role.ADMIN), validateBody(createDeviceSchema), deviceController.create);
+deviceRoutes.patch('/:id', requireRole(Role.ADMIN), validateBody(updateDeviceSchema), deviceController.update);
+deviceRoutes.post('/:deviceId/files', requireRole(Role.ADMIN), upload.single('file'), fileController.uploadDeviceFile);

@@ -15,7 +15,7 @@ export function DashboardLayout() {
         <nav>
           <NavLink to="/tickets"><Ticket size={18}/> Tickets</NavLink>
           <NavLink to="/tickets/new"><PlusCircle size={18}/> Nuevo ticket</NavLink>
-          {user?.role === 'ADMIN' && <NavLink to="/inventory"><Boxes size={18}/> Inventario</NavLink>}
+          <NavLink to="/inventory"><Boxes size={18}/> Inventario</NavLink>
         </nav>
         <div className="sessionCard">
           <span>{user?.role}</span>

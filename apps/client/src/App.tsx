@@ -29,7 +29,7 @@ export default function App() {
         <Route index element={<Navigate to="/tickets" replace />} />
         <Route path="tickets" element={<TicketsPage />} />
         <Route path="tickets/new" element={<NewTicketPage />} />
-        <Route path="inventory" element={<Protected adminOnly><InventoryPage /></Protected>} />
+        <Route path="inventory" element={<InventoryPage />} />
       </Route>
     </Routes>
   );

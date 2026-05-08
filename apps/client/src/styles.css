@@ -62,3 +62,35 @@ button, input, textarea, select { font: inherit; }
 .inventoryHero p { max-width: 650px; }
 .inventoryHero img { width: min(34vw, 390px); border: 2px solid var(--graphite); object-fit: cover; }
 @media (max-width: 860px) { .loginGrid, .shell { grid-template-columns: 1fr; } .sidebar { position: static; } .pageHeader, .inventoryHero { align-items: flex-start; flex-direction: column; } .inventoryHero img { width: 100%; } }
+
+/*
+ * Diseño elegido: Brutalismo administrativo suizo.
+ * Extensión de inventario: tabla de resguardo, modal administrativo y controles de responsiva con alto contraste.
+ */
+.inventoryHero--actions > div { display: grid; gap: .85rem; }
+.alertBox { background: #f8dfd5; border: 2px solid #8a2f1f; color: #5d2117; padding: .9rem 1rem; font-weight: 700; box-shadow: 5px 5px 0 rgba(138,47,31,.18); }
+.inventoryTableShell { background: var(--paper); border: 2px solid var(--graphite); box-shadow: 7px 7px 0 rgba(17,24,32,.14); overflow-x: auto; }
+.inventoryTable { width: 100%; min-width: 920px; border-collapse: collapse; }
+.inventoryTable th, .inventoryTable td { padding: .85rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.inventoryTable th { background: var(--graphite); color: var(--ivory); font-family: 'IBM Plex Mono', monospace; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+.inventoryTable tr:last-child td { border-bottom: 0; }
+.inventoryTable td { background: rgba(255,255,255,.42); }
+.deviceState.AVAILABLE { background: var(--green); }
+.deviceState.ASSIGNED { background: var(--steel); }
+.deviceState.MAINTENANCE { background: var(--amber); }
+.deviceState.RETIRED { background: #6b7280; }
+.linkAction, .ghostAction { border: 2px solid var(--graphite); background: white; color: var(--graphite); padding: .55rem .75rem; font-weight: 800; cursor: pointer; box-shadow: 3px 3px 0 rgba(17,24,32,.18); }
+.linkAction:hover, .ghostAction:hover { transform: translate(2px,2px); box-shadow: 1px 1px 0 rgba(17,24,32,.18); }
+.linkAction { color: var(--steel); text-transform: uppercase; font-family: 'IBM Plex Mono', monospace; font-size: .72rem; }
+.mutedText { color: #6b7280; font-family: 'IBM Plex Mono', monospace; font-size: .72rem; text-transform: uppercase; }
+.modalBackdrop { position: fixed; inset: 0; z-index: 40; background: rgba(17,24,32,.62); display: grid; place-items: start center; padding: clamp(1rem, 4vw, 3rem); overflow-y: auto; }
+.modalPanel { width: min(960px, 100%); background: var(--paper); border: 3px solid var(--graphite); box-shadow: 12px 12px 0 rgba(17,24,32,.35); padding: 1.2rem; }
+.modalHeader { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; border-bottom: 2px solid var(--graphite); padding-bottom: 1rem; }
+.inventoryForm { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.inventoryForm .wideField { grid-column: 1 / -1; }
+.adminForm input, .adminForm textarea, .adminForm select { width: 100%; border: 2px solid var(--graphite); background: white; padding: .8rem; }
+.adminForm input[type="file"] { background: #fff8dc; border-style: dashed; }
+.fileField span { font-family: 'IBM Plex Mono', monospace; font-size: .75rem; color: #53606b; }
+.formActions { display: flex; justify-content: flex-end; gap: .8rem; flex-wrap: wrap; }
+button:disabled { opacity: .55; cursor: not-allowed; transform: none !important; }
+@media (max-width: 720px) { .inventoryForm { grid-template-columns: 1fr; } .modalHeader { flex-direction: column; } .formActions { justify-content: stretch; } .formActions button { width: 100%; justify-content: center; } }
