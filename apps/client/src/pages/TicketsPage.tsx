@@ -65,6 +65,10 @@ export function TicketsPage() {
             <article className={`ticketCard ticketRecord ${canExpandTickets ? 'ticketRecord--admin' : 'ticketRecord--locked'} ${isExpanded ? 'isExpanded' : 'isCollapsed'}`} key={ticket.id}>
               <div className="ticketCollapseHeader">
                 <div className="ticketFailureOnly">
+                  <div className="ticketVisibleMeta">
+                    <span className="folio">{ticket.publicId}</span>
+                    <span className={`status ${ticket.status}`}>{statusLabels[ticket.status]}</span>
+                  </div>
                   <span>Descripción del fallo</span>
                   <p>{ticket.failureDescription}</p>
                 </div>

@@ -66,6 +66,10 @@ button, input, textarea, select { font: inherit; }
 .ticketFailureOnly { border: 2px solid var(--graphite); background: rgba(255,255,255,.62); padding: .85rem; }
 .ticketRecord--locked .ticketFailureOnly { border-width: 1px; background: #fffdf4; padding: .85rem 1rem; }
 .ticketFailureOnly span { display: block; margin-bottom: .35rem; font-family: 'IBM Plex Mono', monospace; font-size: .68rem; font-weight: 900; text-transform: uppercase; letter-spacing: .07em; color: #53606b; }
+.ticketVisibleMeta { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; justify-content: space-between; margin-bottom: .65rem; }
+.ticketVisibleMeta .folio, .ticketVisibleMeta .status { display: inline-flex; align-items: center; margin: 0; border: 1px solid var(--graphite); padding: .28rem .45rem; font-family: 'IBM Plex Mono', monospace; font-size: .68rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; color: var(--graphite); background: #f2efe5; }
+.ticketVisibleMeta .status.PENDING { background: #ffd7a8; }
+.ticketVisibleMeta .status.RESOLVED { background: #c9f2d0; }
 .ticketFailureOnly p { margin: 0; font-size: 1.02rem; line-height: 1.45; font-weight: 800; color: var(--graphite); }
 .ticketRecord--locked .ticketFailureOnly p { text-transform: uppercase; font-size: .95rem; }
 .ticketToggleAction { min-width: 138px; border: 2px solid var(--graphite); background: var(--graphite); color: var(--ivory); padding: .75rem .9rem; font-family: 'IBM Plex Mono', monospace; font-size: .72rem; font-weight: 900; text-transform: uppercase; letter-spacing: .07em; cursor: pointer; box-shadow: 4px 4px 0 rgba(17,24,32,.18); transition: transform .16s ease, box-shadow .16s ease, background .16s ease; }
