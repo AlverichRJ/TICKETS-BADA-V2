@@ -202,7 +202,7 @@ button { cursor: pointer; }
 .inventory-workspace { display: grid; grid-template-columns: minmax(320px, 420px) minmax(0, 1fr); gap: 1.4rem; align-items: start; }
 .inventory-board-panel { min-width: 0; overflow: hidden; }
 .inventory-board { display: grid; gap: .55rem; overflow-x: auto; padding-bottom: .35rem; }
-.inventory-board-head, .inventory-board-row { min-width: 1120px; display: grid; grid-template-columns: 170px 230px 230px 120px 130px 125px 115px; align-items: stretch; }
+.inventory-board-head, .inventory-board-row { min-width: 860px; display: grid; grid-template-columns: 170px 230px minmax(220px, 1fr) 130px 125px 115px; align-items: stretch; }
 .inventory-board-head { background: #315d86; color: white; border: 1px solid #0f172a; font-family: 'Roboto Mono', monospace; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
 .inventory-board-head span { padding: .75rem .7rem; border-right: 1px solid rgba(255,255,255,.28); text-align: center; }
 .inventory-board-row { border: 1px solid #d8cfc2; background: rgba(255,250,241,.82); }
@@ -211,12 +211,21 @@ button { cursor: pointer; }
 .inventory-board-row > button, .responsiva-card > button { border: 1px solid #0f172a; background: #fffaf1; font-weight: 900; gap: .35rem; }
 .form-grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
 .status-cancelled { color: #475569; background: #e2e8f0; }
+.responsiva-filters { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(200px, 320px); gap: .75rem; margin-bottom: 1rem; }
+.responsiva-filters label { display: grid; gap: .35rem; font-weight: 800; color: #334155; }
+.responsiva-filters input, .responsiva-filters select { width: 100%; }
 .responsiva-list { display: grid; gap: .85rem; }
 .responsiva-card { display: grid; grid-template-columns: minmax(220px, 1fr) auto minmax(180px, 250px) auto; gap: .8rem; align-items: center; padding: 1rem; border: 1px solid #d8cfc2; background: rgba(255,250,241,.84); }
 .responsiva-card strong { display: block; font-size: 1.05rem; }
 .responsiva-card span, .responsiva-card p { color: var(--muted); margin: .25rem 0 0; line-height: 1.45; }
 .document-links { display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center; }
 .document-links a, .document-links span { display: inline-flex; align-items: center; gap: .35rem; padding: .45rem .6rem; border: 1px solid #d6cebf; background: #f8f4ec; font-family: 'Roboto Mono', monospace; font-size: .72rem; font-weight: 900; }
+.document-links a { color: #0f172a; text-decoration: none; }
+.document-links a:hover { border-color: #315d86; background: rgba(49,93,134,.1); }
+.pagination-controls { display: flex; flex-wrap: wrap; gap: .65rem; align-items: center; justify-content: flex-end; margin-top: 1rem; }
+.pagination-controls button { border: 1px solid #0f172a; background: #fffaf1; padding: .55rem .8rem; font-weight: 900; }
+.pagination-controls button:disabled { opacity: .45; cursor: not-allowed; }
+.pagination-controls span { font-family: 'Roboto Mono', monospace; font-size: .82rem; color: #334155; }
 .import-panel { display: grid; gap: 1rem; max-width: 880px; }
 .import-panel p { color: var(--muted); line-height: 1.7; max-width: 760px; }
 .excel-drop { display: grid; place-items: center; gap: .65rem; min-height: 190px; border: 2px dashed #315d86; background: rgba(49,93,134,.08); cursor: pointer; text-align: center; }
@@ -227,6 +236,7 @@ button { cursor: pointer; }
 @media (max-width: 1100px) {
   .inventory-workspace { grid-template-columns: 1fr; }
   .form-panel { position: static; }
+  .responsiva-filters { grid-template-columns: 1fr; }
   .responsiva-card { grid-template-columns: 1fr; }
   .document-links { justify-content: flex-start; }
 }

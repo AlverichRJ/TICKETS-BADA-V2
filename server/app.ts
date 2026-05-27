@@ -146,6 +146,27 @@ export function createApp() {
     }
   });
 
+  app.get('/api/files/:id/view', requireAuthenticated, async (req, res, next) => {
+    try {
+      const file = await getFileAttachment(String(req.params.id));
+      if (!file) {
+        res.status(404).json({ error: 'Archivo no encontrado.' });
+        return;
+      }
+      const resolvedUploadDir = path.resolve(env.uploadDir);
+      const resolvedPath = path.resolve(file.path);
+      if (!resolvedPath.startsWith(resolvedUploadDir)) {
+        res.status(403).json({ error: 'Ruta de archivo no permitida.' });
+        return;
+      }
+      res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.originalName)}"`);
+      res.sendFile(resolvedPath);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.get('/api/files/:id/download', requireAuthenticated, async (req, res, next) => {
     try {
       const file = await getFileAttachment(String(req.params.id));

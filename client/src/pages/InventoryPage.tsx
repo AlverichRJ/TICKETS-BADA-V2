@@ -137,6 +137,9 @@ export function InventoryPage() {
   const [ineFile, setIneFile] = useState<File | null>(null);
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [filter, setFilter] = useState('');
+  const [responsivaSearch, setResponsivaSearch] = useState('');
+  const [responsivaDepartmentFilter, setResponsivaDepartmentFilter] = useState('');
+  const [responsivaPage, setResponsivaPage] = useState(1);
   const [message, setMessage] = useState('');
   const [activeTab, setActiveTab] = useState<'devices' | 'responsivas' | 'import'>('devices');
 
@@ -161,8 +164,22 @@ export function InventoryPage() {
 
   const filteredDevices = useMemo(() => {
     const term = filter.toLowerCase();
-    return (devices.data || []).filter((device: any) => [device.equipment, device.serialNumber, device.description, device.assignedUserName, device.team].some((value) => String(value || '').toLowerCase().includes(term)));
+    return (devices.data || []).filter((device: any) => [device.equipment, device.serialNumber, device.description].some((value) => String(value || '').toLowerCase().includes(term)));
   }, [devices.data, filter]);
+
+  const filteredResponsivas = useMemo(() => {
+    const term = responsivaSearch.toLowerCase();
+    return (responsivas.data || []).filter((item: any) => {
+      const matchesDepartment = !responsivaDepartmentFilter || item.departmentId === responsivaDepartmentFilter;
+      const matchesSearch = !term || [item.responsibleName, item.responsibleEmail, item.equipment, item.serialNumber, item.departmentName, item.notes].some((value) => String(value || '').toLowerCase().includes(term));
+      return matchesDepartment && matchesSearch;
+    });
+  }, [responsivas.data, responsivaSearch, responsivaDepartmentFilter]);
+
+  const responsivaPageSize = 8;
+  const responsivaTotalPages = Math.max(1, Math.ceil(filteredResponsivas.length / responsivaPageSize));
+  const currentResponsivaPage = Math.min(responsivaPage, responsivaTotalPages);
+  const paginatedResponsivas = filteredResponsivas.slice((currentResponsivaPage - 1) * responsivaPageSize, currentResponsivaPage * responsivaPageSize);
 
   function resetDeviceForm() {
     setDeviceForm(emptyDevice);
@@ -315,19 +332,16 @@ export function InventoryPage() {
               <label>Equipo<input required value={deviceForm.equipment} onChange={(e) => setDeviceForm({ ...deviceForm, equipment: e.target.value })} /></label>
               <label>Número de serie<input required value={deviceForm.serialNumber} onChange={(e) => setDeviceForm({ ...deviceForm, serialNumber: e.target.value })} /></label>
               <div className="form-grid-two"><label>Estado<select value={deviceForm.state} onChange={(e) => setDeviceForm({ ...deviceForm, state: e.target.value as DeviceState })}><option value="available">Disponible</option><option value="assigned">Asignado</option><option value="maintenance">Mantenimiento</option><option value="retired">Retirado</option></select></label><label>Préstamo<select value={deviceForm.loanStatus} onChange={(e) => setDeviceForm({ ...deviceForm, loanStatus: e.target.value as LoanStatus })}><option value="active">Activo</option><option value="returned">Entregado</option></select></label></div>
-              <label>Responsable<input value={deviceForm.assignedUserName} onChange={(e) => setDeviceForm({ ...deviceForm, assignedUserName: e.target.value })} placeholder="Nombre del responsable" /></label>
-              <label>Team<input value={deviceForm.team} onChange={(e) => setDeviceForm({ ...deviceForm, team: e.target.value })} /></label>
-              <label>URL responsiva externa<input value={deviceForm.externalResponsivaUrl} onChange={(e) => setDeviceForm({ ...deviceForm, externalResponsivaUrl: e.target.value })} placeholder="Google Drive opcional" /></label>
-              <label>Descripción<textarea value={deviceForm.description} onChange={(e) => setDeviceForm({ ...deviceForm, description: e.target.value })} /></label>
+              <label>Descripción<textarea value={deviceForm.description} onChange={(e) => setDeviceForm({ ...deviceForm, description: e.target.value })} placeholder="Marca, modelo, observaciones físicas o accesorios" /></label>
               <button className="primary-button blueprint-button" disabled={!isAdmin || createDevice.isLoading || updateDevice.isLoading}>{deviceForm.id ? 'Guardar cambios' : 'Guardar equipo'}</button>
             </form>
           </aside>
 
           <div className="panel blueprint-surface inventory-board-panel">
-            <div className="panel-title-row"><div><span className="eyebrow">LISTADO</span><h3>Equipos registrados</h3></div><div className="filter-bar"><label>Buscar<input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Serie, equipo, responsable" /></label></div></div>
+            <div className="panel-title-row"><div><span className="eyebrow">LISTADO</span><h3>Equipos registrados</h3></div><div className="filter-bar"><label>Buscar<input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Serie, equipo o descripción" /></label></div></div>
             <div className="inventory-board">
-              <div className="inventory-board-head"><span>Serie</span><span>Equipo</span><span>Responsable</span><span>Team</span><span>Estado</span><span>Préstamo</span><span>Acciones</span></div>
-              {filteredDevices.map((device: any) => <div className="inventory-board-row" key={device.id}><strong>{device.serialNumber}</strong><span>{device.equipment}</span><span>{device.assignedUserName || 'Sin asignar'}</span><span>{device.team || '—'}</span><em className={`status-pill ${stateClass[device.state] || ''}`}>{statusLabel(device.state)}</em><em className={`status-pill ${stateClass[device.loanStatus] || ''}`}>{device.loanStatus === 'returned' ? 'Entregado' : 'Activo'}</em><button onClick={() => editDevice(device)}><Pencil size={14} /> Editar</button></div>)}
+              <div className="inventory-board-head"><span>Serie</span><span>Equipo</span><span>Descripción</span><span>Estado</span><span>Préstamo</span><span>Acciones</span></div>
+              {filteredDevices.map((device: any) => <div className="inventory-board-row" key={device.id}><strong>{device.serialNumber}</strong><span>{device.equipment}</span><span>{device.description || '—'}</span><em className={`status-pill ${stateClass[device.state] || ''}`}>{statusLabel(device.state)}</em><em className={`status-pill ${stateClass[device.loanStatus] || ''}`}>{device.loanStatus === 'returned' ? 'Entregado' : 'Activo'}</em><button onClick={() => editDevice(device)}><Pencil size={14} /> Editar</button></div>)}
               {!filteredDevices.length && <p className="empty-state">No hay equipos registrados.</p>}
             </div>
           </div>
@@ -343,6 +357,7 @@ export function InventoryPage() {
               <label>Responsable del sistema<select value={responsivaForm.responsibleUserId} onChange={(e) => selectResponsible(e.target.value)}><option value="">Captura manual</option>{assignableUsers.data?.map((user: any) => <option key={user.id} value={user.id}>{user.name} · {user.email}</option>)}</select></label>
               <label>Nombre responsable<input required value={responsivaForm.responsibleName} onChange={(e) => setResponsivaForm({ ...responsivaForm, responsibleName: e.target.value })} /></label>
               <label>Correo responsable<input value={responsivaForm.responsibleEmail} onChange={(e) => setResponsivaForm({ ...responsivaForm, responsibleEmail: e.target.value })} /></label>
+              <label>Departamento<select value={responsivaForm.departmentId} onChange={(e) => setResponsivaForm({ ...responsivaForm, departmentId: e.target.value })}><option value="">Sin departamento</option>{departments.data?.map((department: any) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>
               <label>Estado<select value={responsivaForm.status} onChange={(e) => setResponsivaForm({ ...responsivaForm, status: e.target.value as ResponsivaStatus })}><option value="active">Activa</option><option value="returned">Entregada</option><option value="cancelled">Cancelada</option></select></label>
               <label>Responsiva firmada PDF/imagen<input type="file" accept="application/pdf,image/*" onChange={(e) => setResponsivaFile(e.target.files?.[0] || null)} /></label>
               <label>INE PDF/imagen<input type="file" accept="application/pdf,image/*" onChange={(e) => setIneFile(e.target.files?.[0] || null)} /></label>
@@ -352,11 +367,16 @@ export function InventoryPage() {
           </aside>
 
           <div className="panel blueprint-surface inventory-board-panel">
-            <div className="panel-title-row"><div><span className="eyebrow">DOCUMENTOS</span><h3>Responsivas creadas</h3></div><small>{responsivas.data?.length || 0} registros</small></div>
-            <div className="responsiva-list">
-              {responsivas.data?.map((item: any) => <article className="responsiva-card" key={item.id}><div><strong>{item.responsibleName}</strong><span>{item.equipment} · {item.serialNumber}</span><p>{item.notes || 'Sin notas'}</p></div><em className={`status-pill ${stateClass[item.status] || ''}`}>{item.status === 'returned' ? 'Entregada' : item.status === 'cancelled' ? 'Cancelada' : 'Activa'}</em><div className="document-links">{item.files?.map((file: any) => <a key={file.id} href={`/api/files/${file.id}/download`}><FileText size={14} /> {file.type.toUpperCase()}</a>)}{!item.files?.length && <span>Sin documentos locales</span>}</div><button onClick={() => editResponsiva(item)}><Pencil size={14} /> Editar</button></article>)}
-              {!responsivas.data?.length && <p className="empty-state">Aún no hay responsivas creadas.</p>}
+            <div className="panel-title-row"><div><span className="eyebrow">DOCUMENTOS</span><h3>Responsivas creadas</h3></div><small>{filteredResponsivas.length} de {responsivas.data?.length || 0} registros</small></div>
+            <div className="responsiva-filters">
+              <label>Buscar<input value={responsivaSearch} onChange={(e) => { setResponsivaSearch(e.target.value); setResponsivaPage(1); }} placeholder="Responsable, equipo, serie o notas" /></label>
+              <label>Departamento<select value={responsivaDepartmentFilter} onChange={(e) => { setResponsivaDepartmentFilter(e.target.value); setResponsivaPage(1); }}><option value="">Todos los departamentos</option>{departments.data?.map((department: any) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>
             </div>
+            <div className="responsiva-list">
+              {paginatedResponsivas.map((item: any) => <article className="responsiva-card" key={item.id}><div><strong>{item.responsibleName}</strong><span>{item.equipment} · {item.serialNumber}</span><span>Departamento: {item.departmentName || 'Sin departamento'}</span><p>{item.notes || 'Sin notas'}</p></div><em className={`status-pill ${stateClass[item.status] || ''}`}>{item.status === 'returned' ? 'Entregada' : item.status === 'cancelled' ? 'Cancelada' : 'Activa'}</em><div className="document-links">{item.files?.map((file: any) => <a key={file.id} href={`/api/files/${file.id}/view`} target="_blank" rel="noreferrer" title={file.originalName}><FileText size={14} /> Ver {file.type.toUpperCase()}</a>)}{!item.files?.length && <span>Sin documentos locales</span>}</div><button onClick={() => editResponsiva(item)}><Pencil size={14} /> Editar</button></article>)}
+              {!filteredResponsivas.length && <p className="empty-state">Aún no hay responsivas que coincidan con los filtros.</p>}
+            </div>
+            <div className="pagination-controls"><button type="button" disabled={currentResponsivaPage <= 1} onClick={() => setResponsivaPage((page) => Math.max(1, page - 1))}>Anterior</button><span>Página {currentResponsivaPage} de {responsivaTotalPages}</span><button type="button" disabled={currentResponsivaPage >= responsivaTotalPages} onClick={() => setResponsivaPage((page) => Math.min(responsivaTotalPages, page + 1))}>Siguiente</button></div>
           </div>
         </div>
       )}
