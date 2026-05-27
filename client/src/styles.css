@@ -145,6 +145,7 @@ button { cursor: pointer; }
 .ticket-id-cell { display: inline-flex; align-items: center; gap: .35rem; font-family: 'Roboto Mono', monospace; }
 .expand-button { width: 24px; height: 24px; display: inline-grid; place-items: center; border: 1px solid #0f172a; background: #fffaf1; padding: 0; }
 .priority-pill, .status-pill { align-self: start; justify-self: start; border-radius: 999px; padding: .35rem .65rem; font-style: normal; font-family: 'Roboto Mono', monospace; font-size: .72rem; font-weight: 800; border: 1px solid rgba(15,23,42,.14); }
+.ticket-board-row > .priority-pill, .ticket-board-row > .status-pill { align-self: start; justify-self: center; display: inline-flex; align-items: center; justify-content: center; width: max-content; max-width: calc(100% - 1rem); min-height: 28px; margin: .75rem .5rem; padding: .35rem .7rem; line-height: 1.15; white-space: nowrap; border-right: 1px solid rgba(15,23,42,.14); }
 .priority-high { color: var(--critical); background: var(--critical-soft); }
 .priority-medium { color: var(--medium); background: var(--medium-soft); }
 .priority-low { color: var(--low); background: var(--low-soft); }
