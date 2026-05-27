@@ -28,7 +28,7 @@ const deviceInput = z.object({
   assignedUserEmail: z.string().email().optional().or(z.literal('')),
   loanStatus: z.enum(['active', 'returned']).optional(),
   team: z.string().optional(),
-  externalResponsivaUrl: z.string().url().optional().or(z.literal(''))
+  externalResponsivaUrl: z.string().trim().max(700).optional().or(z.literal(''))
 });
 
 const responsivaInput = z.object({
@@ -50,7 +50,7 @@ export const inventoryRouter = router({
   getResponsiva: protectedProcedure.input(z.object({ id: z.string().min(2) })).query(({ input }) => getResponsiva(input.id)),
   createResponsiva: adminProcedure.input(responsivaInput).mutation(({ input, ctx }) => createResponsiva({ ...input, createdById: ctx.user.id })),
   updateResponsiva: adminProcedure.input(responsivaInput.extend({ id: z.string().min(2), status: z.enum(['active', 'returned', 'cancelled']) })).mutation(({ input }) => updateResponsiva(input)),
-  bulkImportDevices: adminProcedure.input(z.object({ devices: z.array(deviceInput).min(1).max(500) })).mutation(({ input }) => bulkImportDevices(input.devices)),
+  bulkImportDevices: adminProcedure.input(z.object({ devices: z.array(deviceInput).min(1).max(5000) })).mutation(({ input }) => bulkImportDevices(input.devices)),
   departments: protectedProcedure.query(() => listDepartments()),
   createDepartment: adminProcedure.input(z.object({ name: z.string().trim().min(2), description: z.string().optional() })).mutation(({ input }) => createDepartment(input)),
   equipmentTypes: protectedProcedure.query(() => listEquipmentTypes()),

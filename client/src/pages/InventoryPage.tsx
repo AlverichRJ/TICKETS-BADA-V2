@@ -72,6 +72,33 @@ function normalize(value: unknown) {
   return String(value ?? '').trim();
 }
 
+function normalizeHeader(value: unknown) {
+  return normalize(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function readExcelCell(row: Record<string, unknown>, aliases: string[]) {
+  const normalizedAliases = aliases.map(normalizeHeader);
+  const entry = Object.entries(row).find(([key]) => normalizedAliases.includes(normalizeHeader(key)));
+  return normalize(entry?.[1]);
+}
+
+function mapLoanStatus(value: string): LoanStatus {
+  const text = normalizeHeader(value);
+  return text.includes('entregado') || text.includes('devuelto') || text.includes('returned') ? 'returned' : 'active';
+}
+
+function mapDeviceState(value: string, assigned: boolean): DeviceState {
+  const text = normalizeHeader(value);
+  if (text.includes('mantenimiento')) return 'maintenance';
+  if (text.includes('retirado') || text.includes('baja')) return 'retired';
+  if (text.includes('disponible')) return 'available';
+  return assigned ? 'assigned' : 'available';
+}
+
 function uploadInventoryFile(file: File, type: 'responsiva' | 'ine' | 'other', deviceId: string, userId?: string) {
   const form = new FormData();
   form.append('file', file);
@@ -111,7 +138,14 @@ export function InventoryPage() {
   const updateDevice = trpc.inventory.updateDevice.useMutation({ onSuccess: refreshInventory });
   const createResponsiva = trpc.inventory.createResponsiva.useMutation({ onSuccess: refreshInventory });
   const updateResponsiva = trpc.inventory.updateResponsiva.useMutation({ onSuccess: refreshInventory });
-  const bulkImport = trpc.inventory.bulkImportDevices.useMutation({ onSuccess: async (result: any) => { setMessage(`Importación completada: ${result.created} nuevos, ${result.updated} actualizados, ${result.errors?.length || 0} errores.`); await refreshInventory(); } });
+  const bulkImport = trpc.inventory.bulkImportDevices.useMutation({
+    onSuccess: async (result: any) => {
+      const errorText = result.errors?.length ? ` Errores: ${result.errors.map((error: any) => `${error.serialNumber}: ${error.message}`).slice(0, 3).join(' | ')}` : '';
+      setMessage(`Importación completada: ${result.created} nuevos, ${result.updated} actualizados.${errorText}`);
+      await refreshInventory();
+    },
+    onError: (error: Error) => setMessage(`No se pudo importar el Excel: ${error.message}`)
+  });
 
   async function refreshInventory() {
     await utils.inventory.invalidate();
@@ -205,38 +239,49 @@ export function InventoryPage() {
       setMessage('Primero selecciona un archivo Excel para cargar.');
       return;
     }
-    const buffer = await excelFile.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: 'array' });
-    const imported: any[] = [];
 
-    workbook.SheetNames.forEach((sheetName) => {
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[sheetName], { defval: '' });
-      rows.forEach((row) => {
-        const name = normalize(row.Nombre);
-        const equipment = normalize(row['Equipo Asignado'] || row.Equipo || row.Dispositivo);
-        const serialNumber = normalize(row['Numero de Serie'] || row['Número de Serie'] || row.Serie);
-        if (!equipment || !serialNumber) return;
-        const loanText = normalize(row['Estado del prestamo'] || row['Estado del préstamo']).toUpperCase();
-        const assigned = Boolean(name) || loanText === 'ACTIVO';
-        imported.push({
-          equipment,
-          serialNumber,
-          assignedUserName: name,
-          state: assigned ? 'assigned' : 'available',
-          loanStatus: loanText === 'ENTREGADO' ? 'returned' : 'active',
-          description: normalize(row['Estado del Equipo'] || row.Descripcion || row.Descripción),
-          externalResponsivaUrl: normalize(row.Responsiva),
-          team: normalize(row.Team || sheetName)
+    try {
+      setMessage(`Leyendo ${excelFile.name}...`);
+      const buffer = await excelFile.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const imported: any[] = [];
+
+      workbook.SheetNames.forEach((sheetName) => {
+        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[sheetName], { defval: '', raw: false });
+        rows.forEach((row) => {
+          const responsibleName = readExcelCell(row, ['Nombre', 'Responsable', 'Usuario', 'Asignado a', 'Persona asignada']);
+          const equipment = readExcelCell(row, ['Equipo Asignado', 'Equipo', 'Dispositivo', 'Tipo de equipo', 'Articulo', 'Artículo']);
+          const serialNumber = readExcelCell(row, ['Numero de Serie', 'Número de Serie', 'No Serie', 'No. Serie', 'Serie', 'Serial', 'Serial Number']);
+          if (!equipment || !serialNumber) return;
+
+          const loanText = readExcelCell(row, ['Estado del prestamo', 'Estado del préstamo', 'Prestamo', 'Préstamo', 'Estado prestamo']);
+          const equipmentStatus = readExcelCell(row, ['Estado del Equipo', 'Estado equipo', 'Descripcion', 'Descripción', 'Observaciones']);
+          const assigned = Boolean(responsibleName) || normalizeHeader(loanText).includes('activo');
+          imported.push({
+            equipment,
+            serialNumber,
+            assignedUserName: responsibleName,
+            state: mapDeviceState(equipmentStatus || loanText, assigned),
+            loanStatus: mapLoanStatus(loanText),
+            description: equipmentStatus,
+            externalResponsivaUrl: readExcelCell(row, ['Responsiva', 'URL Responsiva', 'Link Responsiva', 'Documento']),
+            team: readExcelCell(row, ['Team', 'Equipo de trabajo', 'Area', 'Área', 'Departamento']) || sheetName
+          });
         });
       });
-    });
 
-    if (!imported.length) {
-      setMessage('No se encontraron filas válidas en el Excel.');
-      return;
+      if (!imported.length) {
+        setMessage('No se encontraron filas válidas en el Excel. Revisa que el archivo tenga columnas de Equipo y Número de Serie.');
+        return;
+      }
+
+      await bulkImport.mutateAsync({ devices: imported });
+      setExcelFile(null);
+      setFilter('');
+      setActiveTab('devices');
+    } catch (error) {
+      setMessage(error instanceof Error ? `No se pudo leer/importar el Excel: ${error.message}` : 'No se pudo leer/importar el Excel.');
     }
-    await bulkImport.mutateAsync({ devices: imported });
-    setExcelFile(null);
   }
 
   return (
