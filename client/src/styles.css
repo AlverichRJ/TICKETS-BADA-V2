@@ -136,11 +136,13 @@ button { cursor: pointer; }
 .compact-board .ticket-board-head, .compact-board .ticket-board-row { min-width: 1280px; grid-template-columns: 110px 170px 190px 280px 230px 120px 120px 165px; }
 .full-board .ticket-board-head, .full-board .ticket-board-row { min-width: 1580px; grid-template-columns: 120px 185px 210px 300px 250px 170px 120px 120px 170px 220px; }
 .ticket-board-head { position: sticky; top: 0; z-index: 2; padding: 0; background: #315d86; color: white; border: 2px solid #0f172a; font-family: 'Roboto Mono', monospace; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
-.ticket-board-head > span { padding: .75rem .7rem; border-right: 1px solid rgba(255,255,255,.28); display: flex; align-items: center; min-height: 54px; line-height: 1.2; overflow-wrap: anywhere; }
+.ticket-board-head > span { padding: .75rem .7rem; border-right: 1px solid rgba(255,255,255,.28); display: flex; align-items: center; min-height: 54px; line-height: 1.2; overflow-wrap: anywhere; background: #315d86; }
+.ticket-board-head > span:last-child, .ticket-board-row > :last-child { border-right: 0; }
 .ticket-board-row { padding: 0; border: 1px solid #d8cfc2; background: rgba(255,250,241,.78); }
 .ticket-board-row:nth-child(odd) { background: rgba(243,239,230,.86); }
 .ticket-board-row > strong, .ticket-board-row > span, .ticket-board-row > p, .ticket-board-row > small, .ticket-board-row > em { min-width: 0; padding: .85rem .7rem; border-right: 1px solid rgba(15,23,42,.1); align-self: stretch; overflow-wrap: anywhere; word-break: break-word; }
 .ticket-board-row p, .spec-cell, .notes-cell { margin: 0; color: #334155; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.ticket-board-row > .notes-cell { display: block; min-height: 100%; }
 .ticket-board-row small { color: var(--muted); }
 .ticket-id-cell { display: inline-flex; align-items: center; gap: .35rem; font-family: 'Roboto Mono', monospace; }
 .expand-button { width: 24px; height: 24px; display: inline-grid; place-items: center; border: 1px solid #0f172a; background: #fffaf1; padding: 0; }
