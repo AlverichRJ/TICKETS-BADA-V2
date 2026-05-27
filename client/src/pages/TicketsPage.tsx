@@ -152,14 +152,14 @@ export function TicketsPage() {
                 <p>{ticket.failureDescription}</p>
                 <span className="spec-cell">{ticket.deviceSpecs || '—'}</span>
                 <small>{formatDate(ticket.reportedAt || ticket.createdAt)}</small>
-                <em className={`priority-pill priority-${ticket.priority}`}>{priorityLabel(ticket.priority)}</em>
-                {canExpand ? <label className={`status-admin-control status-${currentStatus}`} aria-label={`Cambiar estatus de ${ticket.publicId}`}>
-                  <select className={`status-select status-${currentStatus}`} value={currentStatus} disabled={updateStatus.isLoading || updateStatus.isPending} onChange={(event) => changeTicketStatus(ticket, event.target.value as TicketStatus)}>
+                <span className="table-badge-cell"><em className={`priority-pill priority-${ticket.priority}`}>{priorityLabel(ticket.priority)}</em></span>
+                {canExpand ? <label className="status-admin-cell" aria-label={`Cambiar estatus de ${ticket.publicId}`}>
+                  <select className={`status-admin-control status-select status-${currentStatus}`} value={currentStatus} disabled={updateStatus.isLoading || updateStatus.isPending} onChange={(event) => changeTicketStatus(ticket, event.target.value as TicketStatus)}>
                     <option value="pending">Pendiente</option>
                     <option value="in_progress">En proceso</option>
                     <option value="resolved">Resuelto</option>
                   </select>
-                </label> : <em className={`status-pill status-${ticket.status}`}>{statusLabel(ticket.status)}</em>}
+                </label> : <span className="table-badge-cell"><em className={`status-pill status-${ticket.status}`}>{statusLabel(ticket.status)}</em></span>}
                 <small>{currentStatus === 'resolved' && !ticket.resolvedAt ? 'Ahora' : formatDate(ticket.resolvedAt)}</small>
                 {canExpand && isExpanded && <div className="admin-ticket-detail">
                   <div><strong>Correo del usuario</strong><span>{ticket.creatorEmail || 'No disponible'}</span></div>
