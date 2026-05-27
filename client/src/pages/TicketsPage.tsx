@@ -51,7 +51,12 @@ export function TicketsPage() {
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    create.mutate({ failureDescription, reviewedEquipment, deviceSpecs, priority });
+    create.mutate({
+      reviewedEquipment: reviewedEquipment.trim(),
+      failureDescription: failureDescription.trim(),
+      deviceSpecs: deviceSpecs.trim(),
+      priority
+    });
   }
 
   function advanceTicket(ticket: any) {
@@ -81,7 +86,7 @@ export function TicketsPage() {
             </div>
           </div>
           <form onSubmit={submit} className="form-stack blueprint-form">
-            <label>Equipo a revisar<input value={reviewedEquipment} onChange={(event) => setReviewedEquipment(event.target.value)} placeholder="PC, monitor, teclado, red, software..." /></label>
+            <label>Equipo a revisar<input required value={reviewedEquipment} onChange={(event) => setReviewedEquipment(event.target.value)} placeholder="PC, monitor, teclado, red, software..." /></label>
             <label>Descripción del fallo<textarea required minLength={8} value={failureDescription} onChange={(event) => setFailureDescription(event.target.value)} placeholder="Ejemplo: la PC se traba, no enciende, pierde red o aparece error." /></label>
             <label>Especificaciones PC<textarea value={deviceSpecs} onChange={(event) => setDeviceSpecs(event.target.value)} placeholder="Procesador, RAM, disco, usuario, correo, serie o notas de contexto." /></label>
             <label>Prioridad<select value={priority} onChange={(event) => setPriority(event.target.value as TicketPriority)}><option value="high">Crítico</option><option value="medium">Medio</option><option value="low">Bajo</option></select></label>

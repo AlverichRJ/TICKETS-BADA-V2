@@ -25,7 +25,12 @@ export function DashboardPage() {
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    create.mutate({ failureDescription, reviewedEquipment, deviceSpecs, priority });
+    create.mutate({
+      reviewedEquipment: reviewedEquipment.trim(),
+      failureDescription: failureDescription.trim(),
+      deviceSpecs: deviceSpecs.trim(),
+      priority
+    });
   }
 
   return (
@@ -55,10 +60,10 @@ export function DashboardPage() {
             <PlusCircle size={24} />
           </div>
           <form onSubmit={submit} className="form-stack blueprint-form">
-            <label>Equipo a revisar<input value={reviewedEquipment} onChange={(event) => setReviewedEquipment(event.target.value)} placeholder="Laptop, monitor, teclado, red..." /></label>
-            <label>Especificaciones PC<textarea value={deviceSpecs} onChange={(event) => setDeviceSpecs(event.target.value)} placeholder="Procesador, RAM, disco, usuario, correo o datos relevantes..." /></label>
+            <label>Equipo a revisar<input required value={reviewedEquipment} onChange={(event) => setReviewedEquipment(event.target.value)} placeholder="PC, monitor, teclado, red, software..." /></label>
+            <label>Descripción del fallo<textarea required minLength={8} value={failureDescription} onChange={(event) => setFailureDescription(event.target.value)} placeholder="Ejemplo: la PC se traba, no enciende, pierde red o aparece error." /></label>
+            <label>Especificaciones PC<textarea value={deviceSpecs} onChange={(event) => setDeviceSpecs(event.target.value)} placeholder="Procesador, RAM, disco, usuario, correo, serie o notas de contexto." /></label>
             <label>Prioridad<select value={priority} onChange={(event) => setPriority(event.target.value as typeof priority)}><option value="high">Crítico</option><option value="medium">Medio</option><option value="low">Bajo</option></select></label>
-            <label>Descripción del fallo<textarea required minLength={8} value={failureDescription} onChange={(event) => setFailureDescription(event.target.value)} placeholder="Describe claramente qué sucede, cuándo inició y si hay mensajes de error." /></label>
             <button className="primary-button blueprint-button" disabled={create.isLoading}>{create.isLoading ? 'Creando ticket...' : 'Crear ticket'}</button>
           </form>
         </article>
@@ -73,13 +78,14 @@ export function DashboardPage() {
           </div>
           <div className="ticket-board compact-board">
             <div className="ticket-board-head">
-              <span>ID</span><span>Usuario</span><span>Equipo</span><span>Fallo</span><span>Prioridad</span><span>Estatus</span><span>Reporte</span>
+              <span>ID de Ticket</span><span>Líder/Usuario</span><span>Equipo a Revisar</span><span>Descripción del Fallo</span><span>Especificaciones PC</span><span>Prioridad</span><span>Estatus</span><span>Fecha de Reporte</span>
             </div>
             {tickets.data?.slice(0, 7).map((ticket: any) => <article key={ticket.id} className="ticket-board-row">
               <strong>{ticket.publicId}</strong>
-              <span>{ticket.creatorName || 'Usuario'}</span>
+              <span>{ticket.leaderName || ticket.creatorName || 'Usuario'}</span>
               <span>{ticket.reviewedEquipment || 'No especificado'}</span>
               <p>{ticket.failureDescription}</p>
+              <span className="spec-cell">{ticket.deviceSpecs || '—'}</span>
               <em className={`priority-pill priority-${ticket.priority}`}>{priorityLabel(ticket.priority)}</em>
               <em className={`status-pill status-${ticket.status}`}>{statusLabel(ticket.status)}</em>
               <small>{formatDate(ticket.reportedAt || ticket.createdAt)}</small>
