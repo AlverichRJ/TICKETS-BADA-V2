@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 import { FileText, Pencil, Plus, UploadCloud } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { trpc } from '../_core/trpc';
@@ -100,6 +100,7 @@ export function InventoryPage() {
   const [responsivaForm, setResponsivaForm] = useState<ResponsivaForm>(emptyResponsiva);
   const [responsivaFile, setResponsivaFile] = useState<File | null>(null);
   const [ineFile, setIneFile] = useState<File | null>(null);
+  const [excelFile, setExcelFile] = useState<File | null>(null);
   const [filter, setFilter] = useState('');
   const [message, setMessage] = useState('');
   const [activeTab, setActiveTab] = useState<'devices' | 'responsivas' | 'import'>('devices');
@@ -199,10 +200,12 @@ export function InventoryPage() {
     await refreshInventory();
   }
 
-  async function importExcel(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const buffer = await file.arrayBuffer();
+  async function importExcel() {
+    if (!excelFile) {
+      setMessage('Primero selecciona un archivo Excel para cargar.');
+      return;
+    }
+    const buffer = await excelFile.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: 'array' });
     const imported: any[] = [];
 
@@ -233,7 +236,7 @@ export function InventoryPage() {
       return;
     }
     await bulkImport.mutateAsync({ devices: imported });
-    event.target.value = '';
+    setExcelFile(null);
   }
 
   return (
@@ -309,7 +312,9 @@ export function InventoryPage() {
         <div className="panel blueprint-surface import-panel">
           <span className="eyebrow">BULK_IMPORT</span><h3>Carga masiva desde Excel</h3>
           <p>Sube la plantilla INVENTARIOVERTIKAL.xlsx. Se leerán todas las hojas y se mapearán las columnas: Nombre, Equipo Asignado, Numero de Serie, Estado del Equipo, Estado del prestamo, Responsiva y Team.</p>
-          <label className="excel-drop"><UploadCloud /><strong>Seleccionar archivo Excel</strong><input type="file" accept=".xlsx,.xls" onChange={importExcel} disabled={!isAdmin || bulkImport.isLoading} /></label>
+          <label className="excel-drop"><UploadCloud /><strong>Seleccionar archivo Excel</strong><input type="file" accept=".xlsx,.xls" onChange={(event) => setExcelFile(event.target.files?.[0] || null)} disabled={!isAdmin || bulkImport.isLoading} /></label>
+          {excelFile && <div className="import-summary"><FileText size={16} /> Archivo listo: <strong>{excelFile.name}</strong></div>}
+          <button className="primary-button blueprint-button import-action" type="button" onClick={importExcel} disabled={!isAdmin || !excelFile || bulkImport.isLoading}>{bulkImport.isLoading ? 'Cargando inventario...' : 'Cargar / importar archivo'}</button>
           <div className="import-summary"><Plus size={16} /> Los equipos existentes se actualizan por número de serie; los nuevos se crean automáticamente.</div>
         </div>
       )}
