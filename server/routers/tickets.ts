@@ -14,6 +14,7 @@ export const ticketsRouter = router({
   stats: protectedProcedure.query(({ ctx }) => ticketStats({ id: ctx.user.id, role: ctx.user.role })),
   create: protectedProcedure.input(z.object({
     deviceId: z.string().optional(),
+    leaderName: z.string().trim().optional(),
     reviewedEquipment: z.string().trim().optional(),
     failureDescription: z.string().trim().min(8),
     deviceSpecs: z.string().trim().optional(),

@@ -9,6 +9,7 @@ export function DashboardPage() {
   const me = trpc.auth.me.useQuery();
   const stats = trpc.tickets.stats.useQuery();
   const tickets = trpc.tickets.list.useQuery({});
+  const [leaderName, setLeaderName] = useState('');
   const [failureDescription, setFailureDescription] = useState('');
   const [reviewedEquipment, setReviewedEquipment] = useState('');
   const [deviceSpecs, setDeviceSpecs] = useState('');
@@ -16,6 +17,7 @@ export function DashboardPage() {
 
   const create = trpc.tickets.create.useMutation({
     onSuccess: async () => {
+      setLeaderName('');
       setFailureDescription('');
       setReviewedEquipment('');
       setDeviceSpecs('');
@@ -26,6 +28,7 @@ export function DashboardPage() {
   function submit(event: FormEvent) {
     event.preventDefault();
     create.mutate({
+      leaderName: leaderName.trim(),
       reviewedEquipment: reviewedEquipment.trim(),
       failureDescription: failureDescription.trim(),
       deviceSpecs: deviceSpecs.trim(),
@@ -60,6 +63,8 @@ export function DashboardPage() {
             <PlusCircle size={24} />
           </div>
           <form onSubmit={submit} className="form-stack blueprint-form">
+            <label>ID de Ticket<input className="readonly-input" value="Automático al crear" readOnly aria-label="ID de Ticket automático" /></label>
+            <label>Líder/Usuario<input required value={leaderName} onChange={(event) => setLeaderName(event.target.value)} placeholder={me.data?.name || 'Nombre del líder o usuario que reporta'} /></label>
             <label>Equipo a revisar<input required value={reviewedEquipment} onChange={(event) => setReviewedEquipment(event.target.value)} placeholder="PC, monitor, teclado, red, software..." /></label>
             <label>Descripción del fallo<textarea required minLength={8} value={failureDescription} onChange={(event) => setFailureDescription(event.target.value)} placeholder="Ejemplo: la PC se traba, no enciende, pierde red o aparece error." /></label>
             <label>Especificaciones PC<textarea value={deviceSpecs} onChange={(event) => setDeviceSpecs(event.target.value)} placeholder="Procesador, RAM, disco, usuario, correo, serie o notas de contexto." /></label>

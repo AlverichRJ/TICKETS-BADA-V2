@@ -54,6 +54,7 @@ function ticketVisibilityConditions(filters: TicketFilters | undefined, viewer: 
       like(tickets.failureDescription, term),
       like(tickets.reviewedEquipment, term),
       like(tickets.deviceSpecs, term),
+      like(tickets.leaderName, term),
       like(users.name, term),
       like(users.email, term)
     )!);
@@ -89,13 +90,14 @@ export async function listTickets(filters: TicketFilters | undefined, viewer: Ti
     .orderBy(desc(tickets.createdAt));
 }
 
-export async function createTicket(input: { creatorId: string; deviceId?: string; reviewedEquipment?: string; failureDescription: string; deviceSpecs?: string; priority: TicketPriority }) {
+export async function createTicket(input: { creatorId: string; deviceId?: string; leaderName?: string; reviewedEquipment?: string; failureDescription: string; deviceSpecs?: string; priority: TicketPriority }) {
   const id = createId('tkt');
   const publicId = await nextPublicId();
   await db.insert(tickets).values({
     id,
     publicId,
     creatorId: input.creatorId,
+    leaderName: input.leaderName || null,
     deviceId: input.deviceId || null,
     reviewedEquipment: input.reviewedEquipment || null,
     failureDescription: input.failureDescription,
