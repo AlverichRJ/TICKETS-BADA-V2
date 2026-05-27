@@ -137,13 +137,14 @@ button { cursor: pointer; }
 .compact-board .ticket-board-head, .compact-board .ticket-board-row { min-width: 1280px; grid-template-columns: 110px 170px 190px 280px 230px 120px 120px 165px; }
 .full-board .ticket-board-head, .full-board .ticket-board-row { width: 1510px; min-width: 1510px; grid-template-columns: 115px 175px 195px 280px 230px 145px 105px 115px 150px; }
 .ticket-board-head { position: sticky; top: 0; z-index: 2; padding: 0; background: #315d86; color: white; border: 1px solid #0f172a; box-sizing: border-box; font-family: 'Roboto Mono', monospace; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
-.ticket-board-head > span { box-sizing: border-box; padding: .75rem .7rem; border-right: 1px solid rgba(255,255,255,.28); display: flex; align-items: center; min-height: 54px; line-height: 1.2; overflow-wrap: anywhere; background: #315d86; }
+.ticket-board-head > span { box-sizing: border-box; padding: .75rem .7rem; border-right: 1px solid rgba(255,255,255,.28); display: flex; align-items: center; justify-content: center; min-height: 54px; line-height: 1.2; overflow-wrap: anywhere; background: #315d86; text-align: center; }
 .ticket-board-head > span:last-child, .ticket-board-row > :last-child { border-right: 0; }
 .ticket-board-head > span:last-child { overflow: hidden; }
 .ticket-board-row { padding: 0; border: 1px solid #d8cfc2; box-sizing: border-box; background: rgba(255,250,241,.78); }
 .ticket-board-row:nth-child(odd) { background: rgba(243,239,230,.86); }
-.ticket-board-row > strong, .ticket-board-row > span, .ticket-board-row > p, .ticket-board-row > small, .ticket-board-row > em { box-sizing: border-box; min-width: 0; padding: .85rem .7rem; border-right: 1px solid rgba(15,23,42,.1); align-self: stretch; overflow-wrap: anywhere; word-break: break-word; }
-.ticket-board-row p, .spec-cell, .notes-cell { margin: 0; color: #334155; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.ticket-board-row > strong, .ticket-board-row > span, .ticket-board-row > p, .ticket-board-row > small, .ticket-board-row > em { box-sizing: border-box; min-width: 0; padding: .85rem .7rem; border-right: 1px solid rgba(15,23,42,.1); align-self: stretch; overflow-wrap: anywhere; word-break: break-word; text-align: center; align-content: center; }
+.ticket-board-row > strong, .ticket-board-row > span, .ticket-board-row > small { display: flex; align-items: center; justify-content: center; }
+.ticket-board-row p, .spec-cell, .notes-cell { margin: 0; color: #334155; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; -webkit-box-pack: center; text-align: center; }
 .ticket-board-row > .notes-cell { display: block; min-height: 100%; width: 100%; }
 .ticket-board-row small { color: var(--muted); }
 .ticket-id-cell { display: inline-flex; align-items: center; gap: .35rem; font-family: 'Roboto Mono', monospace; }
@@ -157,7 +158,8 @@ button { cursor: pointer; }
 .status-in_progress { color: #854d0e; background: #fef3c7; }
 .status-resolved { color: #166534; background: #dcfce7; }
 .status-admin-control { align-self: start; justify-self: center; display: inline-flex; width: calc(100% - 1rem); max-width: 112px; margin: .68rem .5rem; padding: 0; border-right: 1px solid rgba(15,23,42,.14); }
-.status-admin-control select { width: 100%; min-height: 30px; border: 1px solid rgba(15,23,42,.22); border-radius: 999px; background: #fffaf1; color: #0f172a; padding: .25rem .45rem; font-family: 'Roboto Mono', monospace; font-size: .68rem; font-weight: 800; line-height: 1.1; }
+.status-admin-control select { width: 100%; min-height: 30px; border: 1px solid rgba(15,23,42,.22); border-radius: 999px; background: #fffaf1; color: #0f172a; padding: .25rem .45rem; font-family: 'Roboto Mono', monospace; font-size: .68rem; font-weight: 800; line-height: 1.1; text-align: center; text-align-last: center; }
+.status-feedback { margin: .75rem 0 1rem; padding: .7rem .9rem; border: 1px solid rgba(49,93,134,.22); background: rgba(219,234,254,.56); color: #1e3a5f; font-weight: 800; font-size: .86rem; text-align: center; }
 .admin-ticket-detail { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(180px, 260px) minmax(260px, 1fr) auto; gap: 1rem; padding: 1rem; margin-top: .45rem; border: 1px dashed #9aa7b4; background: rgba(231,225,213,.75); }
 .admin-ticket-detail div, .admin-ticket-detail label { display: grid; gap: .35rem; }
 .admin-ticket-detail span { color: var(--muted); }

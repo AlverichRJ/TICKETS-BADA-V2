@@ -31,6 +31,8 @@ export function TicketsPage() {
   const [priorityFilter, setPriorityFilter] = useState<'all' | TicketPriority>('all');
   const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
   const [technicalNotes, setTechnicalNotes] = useState<Record<string, string>>({});
+  const [localStatuses, setLocalStatuses] = useState<Record<string, TicketStatus>>({});
+  const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
 
   const filters: TicketFilters = {
     ...(search.trim() ? { search: search.trim() } : {}),
@@ -49,7 +51,7 @@ export function TicketsPage() {
       await utils.tickets.invalidate();
     }
   });
-  const updateStatus = trpc.tickets.updateStatus.useMutation({ onSuccess: async () => utils.tickets.invalidate() });
+  const updateStatus = trpc.tickets.updateStatus.useMutation();
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -63,10 +65,22 @@ export function TicketsPage() {
   }
 
   function changeTicketStatus(ticket: any, targetStatus: TicketStatus) {
+    const previousStatus = (localStatuses[ticket.id] || ticket.status) as TicketStatus;
+    setStatusFeedback(null);
+    setLocalStatuses((current) => ({ ...current, [ticket.id]: targetStatus }));
     updateStatus.mutate({
       id: ticket.id,
       status: targetStatus,
       technicalNotes: technicalNotes[ticket.id] || ticket.technicalNotes || undefined
+    }, {
+      onSuccess: async () => {
+        setStatusFeedback(`Estatus de ${ticket.publicId} actualizado a ${statusLabel(targetStatus)}.`);
+        await utils.tickets.invalidate();
+      },
+      onError: (error: any) => {
+        setLocalStatuses((current) => ({ ...current, [ticket.id]: previousStatus }));
+        setStatusFeedback(error?.message || 'No se pudo actualizar el estatus. Revisa permisos o conexión e intenta nuevamente.');
+      }
     });
   }
 
@@ -115,6 +129,7 @@ export function TicketsPage() {
               <label><select value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="all">Todos los estatus</option><option value="pending">Pendiente</option><option value="in_progress">En proceso</option><option value="resolved">Resuelto</option></select></label>
             </div>
           </div>
+          {statusFeedback && <p className="status-feedback" role="status">{statusFeedback}</p>}
 
           <div className="ticket-board full-board">
             <div className="ticket-board-head">
@@ -123,6 +138,7 @@ export function TicketsPage() {
             {tickets.data?.map((ticket: any) => {
               const isExpanded = expandedTicket === ticket.id;
               const canExpand = me.data?.role === 'admin';
+              const currentStatus = (localStatuses[ticket.id] || ticket.status) as TicketStatus;
               return <article key={ticket.id} className={`ticket-board-row detailed-ticket-row ${isExpanded ? 'is-expanded' : ''}`}>
                 <strong className="ticket-id-cell">{canExpand && <button className="expand-button" onClick={() => setExpandedTicket(isExpanded ? null : ticket.id)}>{isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</button>}{ticket.publicId}</strong>
                 <span>{ticket.leaderName || ticket.creatorName || 'Usuario'}</span>
@@ -132,7 +148,7 @@ export function TicketsPage() {
                 <small>{formatDate(ticket.reportedAt || ticket.createdAt)}</small>
                 <em className={`priority-pill priority-${ticket.priority}`}>{priorityLabel(ticket.priority)}</em>
                 {canExpand ? <label className="status-admin-control" aria-label={`Cambiar estatus de ${ticket.publicId}`}>
-                  <select value={ticket.status} disabled={updateStatus.isLoading} onChange={(event) => changeTicketStatus(ticket, event.target.value as TicketStatus)}>
+                  <select value={currentStatus} disabled={updateStatus.isLoading || updateStatus.isPending} onChange={(event) => changeTicketStatus(ticket, event.target.value as TicketStatus)}>
                     <option value="pending">Pendiente</option>
                     <option value="in_progress">En proceso</option>
                     <option value="resolved">Resuelto</option>
@@ -143,8 +159,8 @@ export function TicketsPage() {
                   <div><strong>Correo del usuario</strong><span>{ticket.creatorEmail || 'No disponible'}</span></div>
                   <label>Notas técnicas<textarea value={technicalNotes[ticket.id] ?? ticket.technicalNotes ?? ''} onChange={(event) => setTechnicalNotes((current) => ({ ...current, [ticket.id]: event.target.value }))} placeholder="Diagnóstico, acciones realizadas, piezas o seguimiento." /></label>
                   <div className="row-actions">
-                    {ticket.status !== 'resolved' && <button disabled={updateStatus.isLoading} onClick={() => advanceTicket(ticket)}>{ticket.status === 'pending' ? 'Pasar a En proceso' : 'Marcar Resuelto'}</button>}
-                    {ticket.status === 'resolved' && <button disabled={updateStatus.isLoading} onClick={() => changeTicketStatus(ticket, 'in_progress')}>Reabrir en proceso</button>}
+                    {currentStatus !== 'resolved' && <button type="button" disabled={updateStatus.isLoading || updateStatus.isPending} onClick={() => advanceTicket({ ...ticket, status: currentStatus })}>{currentStatus === 'pending' ? 'Pasar a En proceso' : 'Marcar Resuelto'}</button>}
+                    {currentStatus === 'resolved' && <button type="button" disabled={updateStatus.isLoading || updateStatus.isPending} onClick={() => changeTicketStatus(ticket, 'in_progress')}>Reabrir en proceso</button>}
                   </div>
                 </div>}
               </article>;
