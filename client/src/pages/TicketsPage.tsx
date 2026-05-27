@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { ChevronDown, ChevronRight, Search, SlidersHorizontal } from 'lucide-react';
 import { trpc } from '../_core/trpc';
 import { formatDate, priorityLabel, statusLabel } from '../lib/format';
@@ -52,6 +52,12 @@ export function TicketsPage() {
     }
   });
   const updateStatus = trpc.tickets.updateStatus.useMutation();
+
+  useEffect(() => {
+    if (!statusFeedback) return;
+    const timeout = window.setTimeout(() => setStatusFeedback(null), 3600);
+    return () => window.clearTimeout(timeout);
+  }, [statusFeedback]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -147,14 +153,14 @@ export function TicketsPage() {
                 <span className="spec-cell">{ticket.deviceSpecs || '—'}</span>
                 <small>{formatDate(ticket.reportedAt || ticket.createdAt)}</small>
                 <em className={`priority-pill priority-${ticket.priority}`}>{priorityLabel(ticket.priority)}</em>
-                {canExpand ? <label className="status-admin-control" aria-label={`Cambiar estatus de ${ticket.publicId}`}>
-                  <select value={currentStatus} disabled={updateStatus.isLoading || updateStatus.isPending} onChange={(event) => changeTicketStatus(ticket, event.target.value as TicketStatus)}>
+                {canExpand ? <label className={`status-admin-control status-${currentStatus}`} aria-label={`Cambiar estatus de ${ticket.publicId}`}>
+                  <select className={`status-select status-${currentStatus}`} value={currentStatus} disabled={updateStatus.isLoading || updateStatus.isPending} onChange={(event) => changeTicketStatus(ticket, event.target.value as TicketStatus)}>
                     <option value="pending">Pendiente</option>
                     <option value="in_progress">En proceso</option>
                     <option value="resolved">Resuelto</option>
                   </select>
                 </label> : <em className={`status-pill status-${ticket.status}`}>{statusLabel(ticket.status)}</em>}
-                <small>{formatDate(ticket.resolvedAt)}</small>
+                <small>{currentStatus === 'resolved' && !ticket.resolvedAt ? 'Ahora' : formatDate(ticket.resolvedAt)}</small>
                 {canExpand && isExpanded && <div className="admin-ticket-detail">
                   <div><strong>Correo del usuario</strong><span>{ticket.creatorEmail || 'No disponible'}</span></div>
                   <label>Notas técnicas<textarea value={technicalNotes[ticket.id] ?? ticket.technicalNotes ?? ''} onChange={(event) => setTechnicalNotes((current) => ({ ...current, [ticket.id]: event.target.value }))} placeholder="Diagnóstico, acciones realizadas, piezas o seguimiento." /></label>
