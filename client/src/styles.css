@@ -135,7 +135,7 @@ button { cursor: pointer; }
 .full-board { justify-items: start; }
 .ticket-board-head, .ticket-board-row { min-width: 1180px; display: grid; align-items: stretch; gap: 0; }
 .compact-board .ticket-board-head, .compact-board .ticket-board-row { min-width: 1280px; grid-template-columns: 110px 170px 190px 280px 230px 120px 120px 165px; }
-.full-board .ticket-board-head, .full-board .ticket-board-row { width: 1510px; min-width: 1510px; grid-template-columns: 115px 175px 195px 280px 230px 145px 105px 115px 150px; }
+.full-board .ticket-board-head, .full-board .ticket-board-row { width: 1523px; min-width: 1523px; grid-template-columns: 115px 175px 195px 280px 230px 145px 105px 128px 150px; }
 .ticket-board-head { position: sticky; top: 0; z-index: 2; padding: 0; background: #315d86; color: white; border: 1px solid #0f172a; box-sizing: border-box; font-family: 'Roboto Mono', monospace; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
 .ticket-board-head > span { box-sizing: border-box; padding: .75rem .7rem; border-right: 1px solid rgba(255,255,255,.28); display: flex; align-items: center; justify-content: center; min-height: 54px; line-height: 1.2; overflow-wrap: anywhere; background: #315d86; text-align: center; }
 .ticket-board-head > span:last-child, .ticket-board-row > :last-child { border-right: 0; }
@@ -157,8 +157,8 @@ button { cursor: pointer; }
 .status-pending { color: #1e3a8a; background: #dbeafe; }
 .status-in_progress { color: #854d0e; background: #fef3c7; }
 .status-resolved { color: #166534; background: #dcfce7; }
-.status-admin-cell { padding-left: .5rem !important; padding-right: .5rem !important; }
-.status-admin-control { display: inline-flex; width: 100%; max-width: 124px; min-height: 32px; border: 1px solid rgba(15,23,42,.18); border-radius: 999px; padding: .25rem .52rem; font-family: 'Roboto Mono', monospace; font-size: .68rem; font-weight: 900; line-height: 1.15; text-align: center; text-align-last: center; white-space: normal; box-shadow: 0 8px 18px rgba(15,23,42,.08); cursor: pointer; transition: background-color .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.status-admin-cell { padding-left: .35rem !important; padding-right: .35rem !important; }
+.status-admin-control { display: inline-flex; width: 100%; max-width: 118px; min-height: 32px; border: 1px solid rgba(15,23,42,.18); border-radius: 999px; padding: .25rem .42rem; font-family: 'Roboto Mono', monospace; font-size: .67rem; font-weight: 900; line-height: 1.15; text-align: center; text-align-last: center; white-space: nowrap; box-shadow: 0 8px 18px rgba(15,23,42,.08); cursor: pointer; transition: background-color .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease; }
 .status-admin-control:disabled { cursor: wait; opacity: .76; }
 .status-select.status-pending { color: #1e3a8a; background-color: #dbeafe; border-color: rgba(30,58,138,.24); }
 .status-select.status-in_progress { color: #854d0e; background-color: #fef3c7; border-color: rgba(133,77,14,.24); }
