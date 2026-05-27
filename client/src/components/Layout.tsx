@@ -19,21 +19,29 @@ export function Layout({ user }: LayoutProps) {
   const items = [
     { to: '/', label: 'Dashboard', icon: Boxes },
     { to: '/tickets', label: 'Tickets', icon: Ticket },
-    { to: '/inventario', label: 'Inventario', icon: Wrench },
-    ...(user.role === 'admin' ? [{ to: '/usuarios', label: 'Usuarios', icon: Users }, { to: '/configuracion', label: 'Sistema', icon: Settings }] : [])
+    ...(user.role === 'admin' ? [
+      { to: '/inventario', label: 'Inventario', icon: Wrench },
+      { to: '/usuarios', label: 'Usuarios', icon: Users },
+      { to: '/configuracion', label: 'Sistema', icon: Settings }
+    ] : [])
   ];
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
+    <div className="app-shell blueprint-app-shell">
+      <aside className="sidebar blueprint-sidebar">
         <div className="brand-block">
           <span className="eyebrow">BADABUN · LOCAL</span>
           <strong>Tickets</strong>
-          <small>Inventario y soporte interno</small>
+          <small>Soporte técnico interno</small>
         </div>
         <nav className="nav-list">
           {items.map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/'}><item.icon size={18} />{item.label}</NavLink>)}
         </nav>
+        <div className="sidebar-blueprint-note">
+          <span>TK-BADA</span>
+          <strong>{user.role === 'admin' ? 'CONTROL TOTAL' : 'VISTA PERSONAL'}</strong>
+          <small>{user.role === 'admin' ? 'Todos los tickets y módulos administrativos.' : 'Creación y consulta de tickets propios.'}</small>
+        </div>
         <div className="user-card">
           <div>
             <strong>{user.name}</strong>

@@ -6,8 +6,12 @@ const prioritySchema = z.enum(['high', 'medium', 'low']);
 const statusSchema = z.enum(['pending', 'in_progress', 'resolved']);
 
 export const ticketsRouter = router({
-  list: protectedProcedure.input(z.object({ status: statusSchema.optional(), search: z.string().optional() }).optional()).query(({ input }) => listTickets(input)),
-  stats: protectedProcedure.query(() => ticketStats()),
+  list: protectedProcedure.input(z.object({
+    status: statusSchema.optional(),
+    priority: prioritySchema.optional(),
+    search: z.string().trim().optional()
+  }).optional()).query(({ ctx, input }) => listTickets(input, { id: ctx.user.id, role: ctx.user.role })),
+  stats: protectedProcedure.query(({ ctx }) => ticketStats({ id: ctx.user.id, role: ctx.user.role })),
   create: protectedProcedure.input(z.object({
     deviceId: z.string().optional(),
     reviewedEquipment: z.string().trim().optional(),
@@ -18,6 +22,6 @@ export const ticketsRouter = router({
   updateStatus: adminProcedure.input(z.object({
     id: z.string(),
     status: statusSchema,
-    technicalNotes: z.string().optional()
+    technicalNotes: z.string().trim().optional()
   })).mutation(({ ctx, input }) => updateTicketStatus({ ...input, actorId: ctx.user.id }))
 });

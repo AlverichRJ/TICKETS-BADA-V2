@@ -1,10 +1,17 @@
 import { and, desc, eq, like, or, sql } from 'drizzle-orm';
 import { db, pool } from '../db/index.js';
-import { ticketAudits, ticketSequences, tickets } from '../db/schema.js';
+import { ticketAudits, ticketSequences, tickets, users } from '../db/schema.js';
 import { createId } from '../utils/id.js';
 
 export type TicketStatus = 'pending' | 'in_progress' | 'resolved';
 export type TicketPriority = 'high' | 'medium' | 'low';
+export type TicketViewer = { id: string; role: 'admin' | 'user' };
+
+export type TicketFilters = {
+  status?: TicketStatus;
+  priority?: TicketPriority;
+  search?: string;
+};
 
 async function nextPublicId(): Promise<string> {
   const connection = await pool.getConnection();
@@ -25,14 +32,61 @@ async function nextPublicId(): Promise<string> {
   }
 }
 
-export async function listTickets(filters?: { status?: TicketStatus; search?: string }) {
+function ticketVisibilityConditions(filters: TicketFilters | undefined, viewer: TicketViewer) {
   const conditions = [];
-  if (filters?.status) conditions.push(eq(tickets.status, filters.status));
+
+  if (viewer.role !== 'admin') {
+    conditions.push(eq(tickets.creatorId, viewer.id));
+  }
+
+  if (filters?.status) {
+    conditions.push(eq(tickets.status, filters.status));
+  }
+
+  if (filters?.priority) {
+    conditions.push(eq(tickets.priority, filters.priority));
+  }
+
   if (filters?.search) {
     const term = `%${filters.search}%`;
-    conditions.push(or(like(tickets.publicId, term), like(tickets.failureDescription, term), like(tickets.reviewedEquipment, term))!);
+    conditions.push(or(
+      like(tickets.publicId, term),
+      like(tickets.failureDescription, term),
+      like(tickets.reviewedEquipment, term),
+      like(tickets.deviceSpecs, term),
+      like(users.name, term),
+      like(users.email, term)
+    )!);
   }
-  return db.select().from(tickets).where(conditions.length ? and(...conditions) : undefined).orderBy(desc(tickets.createdAt));
+
+  return conditions.length ? and(...conditions) : undefined;
+}
+
+export async function listTickets(filters: TicketFilters | undefined, viewer: TicketViewer) {
+  return db.select({
+    id: tickets.id,
+    publicId: tickets.publicId,
+    creatorId: tickets.creatorId,
+    creatorName: users.name,
+    creatorEmail: users.email,
+    leaderId: tickets.leaderId,
+    leaderName: tickets.leaderName,
+    deviceId: tickets.deviceId,
+    reviewedEquipment: tickets.reviewedEquipment,
+    failureDescription: tickets.failureDescription,
+    deviceSpecs: tickets.deviceSpecs,
+    reportedAt: tickets.reportedAt,
+    priority: tickets.priority,
+    status: tickets.status,
+    resolvedAt: tickets.resolvedAt,
+    technicalNotes: tickets.technicalNotes,
+    createdAt: tickets.createdAt,
+    updatedAt: tickets.updatedAt
+  })
+    .from(tickets)
+    .leftJoin(users, eq(tickets.creatorId, users.id))
+    .where(ticketVisibilityConditions(filters, viewer))
+    .orderBy(desc(tickets.createdAt));
 }
 
 export async function createTicket(input: { creatorId: string; deviceId?: string; reviewedEquipment?: string; failureDescription: string; deviceSpecs?: string; priority: TicketPriority }) {
@@ -74,11 +128,25 @@ export async function updateTicketStatus(input: { id: string; actorId: string; s
   return ticket;
 }
 
-export async function ticketStats() {
-  const rows = await db.select({ status: tickets.status, total: sql<number>`count(*)` }).from(tickets).groupBy(tickets.status);
+export async function ticketStats(viewer: TicketViewer) {
+  const where = viewer.role !== 'admin' ? eq(tickets.creatorId, viewer.id) : undefined;
+  const rows = await db.select({ status: tickets.status, total: sql<number>`count(*)` }).from(tickets).where(where).groupBy(tickets.status);
+  const priorityRows = await db.select({ priority: tickets.priority, total: sql<number>`count(*)` }).from(tickets).where(where).groupBy(tickets.priority);
+
+  const pending = Number(rows.find((row) => row.status === 'pending')?.total ?? 0);
+  const inProgress = Number(rows.find((row) => row.status === 'in_progress')?.total ?? 0);
+  const resolved = Number(rows.find((row) => row.status === 'resolved')?.total ?? 0);
+  const critical = Number(priorityRows.find((row) => row.priority === 'high')?.total ?? 0);
+  const medium = Number(priorityRows.find((row) => row.priority === 'medium')?.total ?? 0);
+  const low = Number(priorityRows.find((row) => row.priority === 'low')?.total ?? 0);
+
   return {
-    pending: Number(rows.find((row) => row.status === 'pending')?.total ?? 0),
-    inProgress: Number(rows.find((row) => row.status === 'in_progress')?.total ?? 0),
-    resolved: Number(rows.find((row) => row.status === 'resolved')?.total ?? 0)
+    pending,
+    inProgress,
+    resolved,
+    total: pending + inProgress + resolved,
+    critical,
+    medium,
+    low
   };
 }

@@ -11,7 +11,7 @@ export function statusLabel(status: string): string {
 }
 
 export function priorityLabel(priority: string): string {
-  return { high: 'Alta', medium: 'Media', low: 'Baja' }[priority] ?? priority;
+  return { high: 'Crítico', medium: 'Medio', low: 'Bajo' }[priority] ?? priority;
 }
 
 export function formatDate(value?: string | Date | null): string {

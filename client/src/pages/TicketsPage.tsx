@@ -1,47 +1,139 @@
 import { FormEvent, useState } from 'react';
+import { ChevronDown, ChevronRight, Search, SlidersHorizontal } from 'lucide-react';
 import { trpc } from '../_core/trpc';
 import { formatDate, priorityLabel, statusLabel } from '../lib/format';
 
+type TicketPriority = 'high' | 'medium' | 'low';
+type TicketStatus = 'pending' | 'in_progress' | 'resolved';
+
+type TicketFilters = {
+  search?: string;
+  status?: TicketStatus;
+  priority?: TicketPriority;
+};
+
+function nextStatus(status: TicketStatus): TicketStatus {
+  if (status === 'pending') return 'in_progress';
+  if (status === 'in_progress') return 'resolved';
+  return 'resolved';
+}
+
 export function TicketsPage() {
   const utils = trpc.useUtils();
+  const me = trpc.auth.me.useQuery();
   const [failureDescription, setFailureDescription] = useState('');
   const [reviewedEquipment, setReviewedEquipment] = useState('');
-  const [priority, setPriority] = useState<'high' | 'medium' | 'low'>('medium');
-  const tickets = trpc.tickets.list.useQuery({});
-  const create = trpc.tickets.create.useMutation({ onSuccess: async () => { setFailureDescription(''); setReviewedEquipment(''); await utils.tickets.invalidate(); } });
+  const [deviceSpecs, setDeviceSpecs] = useState('');
+  const [priority, setPriority] = useState<TicketPriority>('medium');
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<'all' | TicketStatus>('all');
+  const [priorityFilter, setPriorityFilter] = useState<'all' | TicketPriority>('all');
+  const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
+  const [technicalNotes, setTechnicalNotes] = useState<Record<string, string>>({});
+
+  const filters: TicketFilters = {
+    ...(search.trim() ? { search: search.trim() } : {}),
+    ...(status !== 'all' ? { status } : {}),
+    ...(priorityFilter !== 'all' ? { priority: priorityFilter } : {})
+  };
+
+  const tickets = trpc.tickets.list.useQuery(filters);
+  const create = trpc.tickets.create.useMutation({
+    onSuccess: async () => {
+      setFailureDescription('');
+      setReviewedEquipment('');
+      setDeviceSpecs('');
+      setPriority('medium');
+      await utils.tickets.invalidate();
+    }
+  });
   const updateStatus = trpc.tickets.updateStatus.useMutation({ onSuccess: async () => utils.tickets.invalidate() });
-  const me = trpc.auth.me.useQuery();
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    create.mutate({ failureDescription, reviewedEquipment, priority });
+    create.mutate({ failureDescription, reviewedEquipment, deviceSpecs, priority });
+  }
+
+  function advanceTicket(ticket: any) {
+    updateStatus.mutate({
+      id: ticket.id,
+      status: nextStatus(ticket.status),
+      technicalNotes: technicalNotes[ticket.id] || ticket.technicalNotes || undefined
+    });
   }
 
   return (
-    <section className="page-grid">
-      <div className="page-stack">
-        <header className="page-header"><div><span className="eyebrow">TK_CONTROL</span><h2>Tickets</h2></div><p>Alta, seguimiento y cierre técnico.</p></header>
-        <div className="panel">
-          <h3>Registro de tickets</h3>
-          <div className="table-list">
-            {tickets.data?.map((ticket: any) => <article key={ticket.id} className="ticket-row">
-              <div><strong>{ticket.publicId}</strong><span>{ticket.reviewedEquipment || 'Equipo no especificado'}</span><small>{formatDate(ticket.createdAt)}</small></div>
-              <p>{ticket.failureDescription}</p>
-              <div className="row-actions"><em>{priorityLabel(ticket.priority)}</em><em>{statusLabel(ticket.status)}</em>{me.data?.role === 'admin' && ticket.status !== 'resolved' && <button onClick={() => updateStatus.mutate({ id: ticket.id, status: ticket.status === 'pending' ? 'in_progress' : 'resolved' })}>Avanzar estado</button>}</div>
-            </article>)}
-            {!tickets.data?.length && <p className="empty-state">No hay tickets todavía.</p>}
-          </div>
+    <section className="page-stack tickets-shell">
+      <header className="page-header blueprint-heading">
+        <div>
+          <span className="eyebrow">TK_CONTROL · BLUEPRINT</span>
+          <h2>Tickets</h2>
         </div>
+        <p>{me.data?.role === 'admin' ? 'Vista administrativa para revisar, filtrar, documentar y cerrar reportes técnicos.' : 'Crea tickets de soporte y consulta el avance de tus reportes registrados.'}</p>
+      </header>
+
+      <div className="ticket-workspace">
+        <aside className="panel blueprint-surface form-panel ticket-create-panel">
+          <div className="panel-title-row">
+            <div>
+              <span className="eyebrow">NUEVO REPORTE</span>
+              <h3>Crear ticket</h3>
+            </div>
+          </div>
+          <form onSubmit={submit} className="form-stack blueprint-form">
+            <label>Equipo a revisar<input value={reviewedEquipment} onChange={(event) => setReviewedEquipment(event.target.value)} placeholder="PC, monitor, teclado, red, software..." /></label>
+            <label>Descripción del fallo<textarea required minLength={8} value={failureDescription} onChange={(event) => setFailureDescription(event.target.value)} placeholder="Ejemplo: la PC se traba, no enciende, pierde red o aparece error." /></label>
+            <label>Especificaciones PC<textarea value={deviceSpecs} onChange={(event) => setDeviceSpecs(event.target.value)} placeholder="Procesador, RAM, disco, usuario, correo, serie o notas de contexto." /></label>
+            <label>Prioridad<select value={priority} onChange={(event) => setPriority(event.target.value as TicketPriority)}><option value="high">Crítico</option><option value="medium">Medio</option><option value="low">Bajo</option></select></label>
+            <button className="primary-button blueprint-button" disabled={create.isLoading}>{create.isLoading ? 'Creando...' : 'Crear ticket'}</button>
+          </form>
+        </aside>
+
+        <article className="panel blueprint-surface tickets-board-panel">
+          <div className="panel-title-row ticket-toolbar">
+            <div>
+              <span className="eyebrow">REGISTRO GENERAL</span>
+              <h3>{me.data?.role === 'admin' ? 'Tickets creados por usuarios' : 'Mis tickets creados'}</h3>
+            </div>
+            <div className="filter-bar">
+              <label className="search-field"><Search size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar ticket, equipo o usuario" /></label>
+              <label><SlidersHorizontal size={15} /><select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value as typeof priorityFilter)}><option value="all">Todas las prioridades</option><option value="high">Crítico</option><option value="medium">Medio</option><option value="low">Bajo</option></select></label>
+              <label><select value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="all">Todos los estatus</option><option value="pending">Pendiente</option><option value="in_progress">En proceso</option><option value="resolved">Resuelto</option></select></label>
+            </div>
+          </div>
+
+          <div className="ticket-board full-board">
+            <div className="ticket-board-head">
+              <span>ID de Ticket</span><span>Líder/Usuario</span><span>Equipo a Revisar</span><span>Descripción del Fallo</span><span>Especificaciones PC</span><span>Fecha de Reporte</span><span>Prioridad</span><span>Estatus</span><span>Fecha de Resolución</span><span>Notas Técnicas</span>
+            </div>
+            {tickets.data?.map((ticket: any) => {
+              const isExpanded = expandedTicket === ticket.id;
+              const canExpand = me.data?.role === 'admin';
+              return <article key={ticket.id} className={`ticket-board-row detailed-ticket-row ${isExpanded ? 'is-expanded' : ''}`}>
+                <strong className="ticket-id-cell">{canExpand && <button className="expand-button" onClick={() => setExpandedTicket(isExpanded ? null : ticket.id)}>{isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</button>}{ticket.publicId}</strong>
+                <span>{ticket.leaderName || ticket.creatorName || 'Usuario'}</span>
+                <span>{ticket.reviewedEquipment || 'No especificado'}</span>
+                <p>{ticket.failureDescription}</p>
+                <span className="spec-cell">{ticket.deviceSpecs || '—'}</span>
+                <small>{formatDate(ticket.reportedAt || ticket.createdAt)}</small>
+                <em className={`priority-pill priority-${ticket.priority}`}>{priorityLabel(ticket.priority)}</em>
+                <em className={`status-pill status-${ticket.status}`}>{statusLabel(ticket.status)}</em>
+                <small>{formatDate(ticket.resolvedAt)}</small>
+                <span className="notes-cell">{ticket.technicalNotes || '—'}</span>
+                {canExpand && isExpanded && <div className="admin-ticket-detail">
+                  <div><strong>Correo del usuario</strong><span>{ticket.creatorEmail || 'No disponible'}</span></div>
+                  <label>Notas técnicas<textarea value={technicalNotes[ticket.id] ?? ticket.technicalNotes ?? ''} onChange={(event) => setTechnicalNotes((current) => ({ ...current, [ticket.id]: event.target.value }))} placeholder="Diagnóstico, acciones realizadas, piezas o seguimiento." /></label>
+                  <div className="row-actions">
+                    {ticket.status !== 'resolved' && <button disabled={updateStatus.isLoading} onClick={() => advanceTicket(ticket)}>{ticket.status === 'pending' ? 'Pasar a En proceso' : 'Marcar Resuelto'}</button>}
+                    {ticket.status === 'resolved' && <button disabled={updateStatus.isLoading} onClick={() => updateStatus.mutate({ id: ticket.id, status: 'in_progress', technicalNotes: technicalNotes[ticket.id] || ticket.technicalNotes || undefined })}>Reabrir en proceso</button>}
+                  </div>
+                </div>}
+              </article>;
+            })}
+            {!tickets.data?.length && <p className="empty-state">No hay tickets con los filtros seleccionados.</p>}
+          </div>
+        </article>
       </div>
-      <aside className="panel form-panel">
-        <h3>Nuevo ticket</h3>
-        <form onSubmit={submit} className="form-stack">
-          <label>Equipo revisado<input value={reviewedEquipment} onChange={(e) => setReviewedEquipment(e.target.value)} placeholder="Laptop, switch, monitor..." /></label>
-          <label>Prioridad<select value={priority} onChange={(e) => setPriority(e.target.value as typeof priority)}><option value="high">Alta</option><option value="medium">Media</option><option value="low">Baja</option></select></label>
-          <label>Descripción de la falla<textarea required minLength={8} value={failureDescription} onChange={(e) => setFailureDescription(e.target.value)} placeholder="Describe el problema técnico..." /></label>
-          <button className="primary-button" disabled={create.isPending}>{create.isPending ? 'Creando...' : 'Crear ticket'}</button>
-        </form>
-      </aside>
     </section>
   );
 }
