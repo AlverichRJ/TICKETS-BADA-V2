@@ -8,6 +8,13 @@
       "when": 1779856509621,
       "tag": "0000_parallel_rocket_raccoon",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1779920400000,
+      "tag": "0001_inventory_responsivas",
+      "breakpoints": true
     }
   ]
 }

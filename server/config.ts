@@ -11,7 +11,8 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().min(1, 'GOOGLE_CLIENT_SECRET es requerido'),
   GOOGLE_CALLBACK_URL: z.string().url(),
   SESSION_SECRET: z.string().min(24, 'SESSION_SECRET debe tener al menos 24 caracteres'),
-  BOOTSTRAP_ADMIN_EMAILS: z.string().optional().default('')
+  BOOTSTRAP_ADMIN_EMAILS: z.string().optional().default(''),
+  UPLOAD_DIR: z.string().optional().default('/var/www/tickets-bada/uploads')
 });
 
 const parsed = envSchema.parse(process.env);
@@ -26,5 +27,6 @@ export const env = {
   googleClientSecret: parsed.GOOGLE_CLIENT_SECRET,
   googleCallbackUrl: parsed.GOOGLE_CALLBACK_URL,
   sessionSecret: parsed.SESSION_SECRET,
-  bootstrapAdminEmails: parsed.BOOTSTRAP_ADMIN_EMAILS.split(',').map((email) => email.trim().toLowerCase()).filter(Boolean)
+  bootstrapAdminEmails: parsed.BOOTSTRAP_ADMIN_EMAILS.split(',').map((email) => email.trim().toLowerCase()).filter(Boolean),
+  uploadDir: parsed.UPLOAD_DIR
 };

@@ -7,6 +7,7 @@ export const ticketStatusEnum = mysqlEnum('ticket_status', ['pending', 'in_progr
 export const deviceStateEnum = mysqlEnum('device_state', ['available', 'assigned', 'maintenance', 'retired']);
 export const loanStatusEnum = mysqlEnum('loan_status', ['active', 'returned']);
 export const fileTypeEnum = mysqlEnum('file_type', ['responsiva', 'ine', 'other']);
+export const responsivaStatusEnum = mysqlEnum('responsiva_status', ['active', 'returned', 'cancelled']);
 export const auditActionEnum = mysqlEnum('audit_action', ['created', 'updated', 'status_changed', 'assigned', 'closed', 'file_attached']);
 
 export const departments = mysqlTable('departments', {
@@ -53,6 +54,8 @@ export const computerEquipment = mysqlTable('computer_equipment', {
 export const devices = mysqlTable('devices', {
   id: varchar('id', { length: 32 }).primaryKey(),
   assignedUserId: varchar('assigned_user_id', { length: 32 }),
+  assignedUserName: varchar('assigned_user_name', { length: 180 }),
+  assignedUserEmail: varchar('assigned_user_email', { length: 220 }),
   assignedComputerEquipmentId: varchar('assigned_computer_equipment_id', { length: 32 }),
   departmentId: varchar('department_id', { length: 32 }),
   equipment: varchar('equipment', { length: 180 }).notNull(),
@@ -60,6 +63,8 @@ export const devices = mysqlTable('devices', {
   state: deviceStateEnum.notNull().default('available'),
   description: text('description'),
   loanStatus: loanStatusEnum.notNull().default('active'),
+  team: varchar('team', { length: 160 }),
+  externalResponsivaUrl: varchar('external_responsiva_url', { length: 700 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow()
 }, (table) => ({
@@ -125,6 +130,24 @@ export const files = mysqlTable('files', {
   storedIdx: uniqueIndex('files_stored_name_idx').on(table.storedName),
   userIdx: index('files_user_id_idx').on(table.userId),
   deviceIdx: index('files_device_id_idx').on(table.deviceId)
+}));
+
+export const responsivas = mysqlTable('responsivas', {
+  id: varchar('id', { length: 32 }).primaryKey(),
+  deviceId: varchar('device_id', { length: 32 }).notNull(),
+  responsibleUserId: varchar('responsible_user_id', { length: 32 }),
+  responsibleName: varchar('responsible_name', { length: 180 }).notNull(),
+  responsibleEmail: varchar('responsible_email', { length: 220 }),
+  departmentId: varchar('department_id', { length: 32 }),
+  status: responsivaStatusEnum.notNull().default('active'),
+  notes: text('notes'),
+  createdById: varchar('created_by_id', { length: 32 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow()
+}, (table) => ({
+  deviceIdx: index('responsivas_device_id_idx').on(table.deviceId),
+  responsibleIdx: index('responsivas_responsible_user_id_idx').on(table.responsibleUserId),
+  statusIdx: index('responsivas_status_idx').on(table.status)
 }));
 
 export const ticketSequences = mysqlTable('ticket_sequences', {
