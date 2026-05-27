@@ -134,7 +134,7 @@ button { cursor: pointer; }
 .ticket-board { display: grid; gap: .5rem; overflow-x: auto; padding-bottom: .35rem; }
 .ticket-board-head, .ticket-board-row { min-width: 1180px; display: grid; align-items: stretch; gap: 0; }
 .compact-board .ticket-board-head, .compact-board .ticket-board-row { min-width: 1280px; grid-template-columns: 110px 170px 190px 280px 230px 120px 120px 165px; }
-.full-board .ticket-board-head, .full-board .ticket-board-row { min-width: 1580px; grid-template-columns: 120px 185px 210px 300px 250px 170px 120px 120px 170px 220px; }
+.full-board .ticket-board-head, .full-board .ticket-board-row { min-width: 1500px; grid-template-columns: 115px 175px 195px 280px 230px 145px 105px 105px 125px 155px; }
 .ticket-board-head { position: sticky; top: 0; z-index: 2; padding: 0; background: #315d86; color: white; border: 2px solid #0f172a; font-family: 'Roboto Mono', monospace; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
 .ticket-board-head > span { padding: .75rem .7rem; border-right: 1px solid rgba(255,255,255,.28); display: flex; align-items: center; min-height: 54px; line-height: 1.2; overflow-wrap: anywhere; background: #315d86; }
 .ticket-board-head > span:last-child, .ticket-board-row > :last-child { border-right: 0; }
