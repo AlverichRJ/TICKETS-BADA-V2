@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1779856509621,
+      "tag": "0000_parallel_rocket_raccoon",
+      "breakpoints": true
+    }
+  ]
+}
