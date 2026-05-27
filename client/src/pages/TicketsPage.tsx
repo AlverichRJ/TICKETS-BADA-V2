@@ -62,12 +62,16 @@ export function TicketsPage() {
     });
   }
 
-  function advanceTicket(ticket: any) {
+  function changeTicketStatus(ticket: any, targetStatus: TicketStatus) {
     updateStatus.mutate({
       id: ticket.id,
-      status: nextStatus(ticket.status),
+      status: targetStatus,
       technicalNotes: technicalNotes[ticket.id] || ticket.technicalNotes || undefined
     });
+  }
+
+  function advanceTicket(ticket: any) {
+    changeTicketStatus(ticket, nextStatus(ticket.status));
   }
 
   return (
@@ -127,7 +131,13 @@ export function TicketsPage() {
                 <span className="spec-cell">{ticket.deviceSpecs || '—'}</span>
                 <small>{formatDate(ticket.reportedAt || ticket.createdAt)}</small>
                 <em className={`priority-pill priority-${ticket.priority}`}>{priorityLabel(ticket.priority)}</em>
-                <em className={`status-pill status-${ticket.status}`}>{statusLabel(ticket.status)}</em>
+                {canExpand ? <label className="status-admin-control" aria-label={`Cambiar estatus de ${ticket.publicId}`}>
+                  <select value={ticket.status} disabled={updateStatus.isLoading} onChange={(event) => changeTicketStatus(ticket, event.target.value as TicketStatus)}>
+                    <option value="pending">Pendiente</option>
+                    <option value="in_progress">En proceso</option>
+                    <option value="resolved">Resuelto</option>
+                  </select>
+                </label> : <em className={`status-pill status-${ticket.status}`}>{statusLabel(ticket.status)}</em>}
                 <small>{formatDate(ticket.resolvedAt)}</small>
                 <span className="notes-cell">{ticket.technicalNotes || '—'}</span>
                 {canExpand && isExpanded && <div className="admin-ticket-detail">
@@ -135,7 +145,7 @@ export function TicketsPage() {
                   <label>Notas técnicas<textarea value={technicalNotes[ticket.id] ?? ticket.technicalNotes ?? ''} onChange={(event) => setTechnicalNotes((current) => ({ ...current, [ticket.id]: event.target.value }))} placeholder="Diagnóstico, acciones realizadas, piezas o seguimiento." /></label>
                   <div className="row-actions">
                     {ticket.status !== 'resolved' && <button disabled={updateStatus.isLoading} onClick={() => advanceTicket(ticket)}>{ticket.status === 'pending' ? 'Pasar a En proceso' : 'Marcar Resuelto'}</button>}
-                    {ticket.status === 'resolved' && <button disabled={updateStatus.isLoading} onClick={() => updateStatus.mutate({ id: ticket.id, status: 'in_progress', technicalNotes: technicalNotes[ticket.id] || ticket.technicalNotes || undefined })}>Reabrir en proceso</button>}
+                    {ticket.status === 'resolved' && <button disabled={updateStatus.isLoading} onClick={() => changeTicketStatus(ticket, 'in_progress')}>Reabrir en proceso</button>}
                   </div>
                 </div>}
               </article>;
