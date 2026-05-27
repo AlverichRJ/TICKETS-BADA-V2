@@ -140,6 +140,8 @@ export function InventoryPage() {
   const [responsivaSearch, setResponsivaSearch] = useState('');
   const [responsivaDepartmentFilter, setResponsivaDepartmentFilter] = useState('');
   const [responsivaPage, setResponsivaPage] = useState(1);
+  const [newDepartmentName, setNewDepartmentName] = useState('');
+  const [newDepartmentDescription, setNewDepartmentDescription] = useState('');
   const [message, setMessage] = useState('');
   const [activeTab, setActiveTab] = useState<'devices' | 'responsivas' | 'import'>('devices');
 
@@ -149,6 +151,7 @@ export function InventoryPage() {
   const updateDevice = trpc.inventory.updateDevice.useMutation({ onSuccess: refreshInventory });
   const createResponsiva = trpc.inventory.createResponsiva.useMutation({ onSuccess: refreshInventory });
   const updateResponsiva = trpc.inventory.updateResponsiva.useMutation({ onSuccess: refreshInventory });
+  const createDepartment = trpc.inventory.createDepartment.useMutation({ onSuccess: refreshInventory });
   const bulkImport = trpc.inventory.bulkImportDevices.useMutation({
     onSuccess: async (result: any) => {
       const errorText = result.errors?.length ? ` Errores: ${result.errors.map((error: any) => `${error.serialNumber}: ${error.message}`).slice(0, 3).join(' | ')}` : '';
@@ -232,6 +235,23 @@ export function InventoryPage() {
       responsibleEmail: user?.email || current.responsibleEmail,
       departmentId: user?.departmentId || current.departmentId
     }));
+  }
+
+  async function submitDepartment(event: FormEvent) {
+    event.preventDefault();
+    const name = newDepartmentName.trim();
+    if (!name) {
+      setMessage('Escribe el nombre del departamento que quieres crear.');
+      return;
+    }
+
+    const department = await createDepartment.mutateAsync({ name, description: newDepartmentDescription.trim() });
+    setResponsivaForm((current) => ({ ...current, departmentId: department.id }));
+    setResponsivaDepartmentFilter(department.id);
+    setResponsivaPage(1);
+    setNewDepartmentName('');
+    setNewDepartmentDescription('');
+    setMessage(`Departamento ${department.name} listo para usarse.`);
   }
 
   async function submitDevice(event: FormEvent) {
@@ -358,6 +378,14 @@ export function InventoryPage() {
               <label>Nombre responsable<input required value={responsivaForm.responsibleName} onChange={(e) => setResponsivaForm({ ...responsivaForm, responsibleName: e.target.value })} /></label>
               <label>Correo responsable<input value={responsivaForm.responsibleEmail} onChange={(e) => setResponsivaForm({ ...responsivaForm, responsibleEmail: e.target.value })} /></label>
               <label>Departamento<select value={responsivaForm.departmentId} onChange={(e) => setResponsivaForm({ ...responsivaForm, departmentId: e.target.value })}><option value="">Sin departamento</option>{departments.data?.map((department: any) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>
+              <div className="department-creator">
+                <div><strong>Crear departamento</strong><span>Agrega un departamento y úsalo inmediatamente en esta responsiva.</span></div>
+                <div className="department-creator-grid">
+                  <input value={newDepartmentName} onChange={(e) => setNewDepartmentName(e.target.value)} placeholder="Nombre del departamento" />
+                  <input value={newDepartmentDescription} onChange={(e) => setNewDepartmentDescription(e.target.value)} placeholder="Descripción opcional" />
+                  <button type="button" className="secondary-link department-create-button" disabled={!isAdmin || createDepartment.isLoading} onClick={submitDepartment}><Plus size={14} /> Crear</button>
+                </div>
+              </div>
               <label>Estado<select value={responsivaForm.status} onChange={(e) => setResponsivaForm({ ...responsivaForm, status: e.target.value as ResponsivaStatus })}><option value="active">Activa</option><option value="returned">Entregada</option><option value="cancelled">Cancelada</option></select></label>
               <label>Responsiva firmada PDF/imagen<input type="file" accept="application/pdf,image/*" onChange={(e) => setResponsivaFile(e.target.files?.[0] || null)} /></label>
               <label>INE PDF/imagen<input type="file" accept="application/pdf,image/*" onChange={(e) => setIneFile(e.target.files?.[0] || null)} /></label>

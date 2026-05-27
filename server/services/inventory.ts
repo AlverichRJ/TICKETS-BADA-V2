@@ -334,8 +334,12 @@ export async function listDepartments() {
 }
 
 export async function createDepartment(input: { name: string; description?: string }) {
+  const name = input.name.trim();
+  const [existing] = await db.select().from(departments).where(eq(departments.name, name));
+  if (existing) return existing;
+
   const id = createId('dep');
-  await db.insert(departments).values({ id, name: input.name, description: input.description || null });
+  await db.insert(departments).values({ id, name, description: input.description?.trim() || null });
   const [department] = await db.select().from(departments).where(eq(departments.id, id));
   return department;
 }
