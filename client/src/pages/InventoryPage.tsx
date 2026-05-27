@@ -99,6 +99,14 @@ function mapDeviceState(value: string, assigned: boolean): DeviceState {
   return assigned ? 'assigned' : 'available';
 }
 
+function getImportErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? 'Error desconocido');
+  if (message.includes('No "mutation"-procedure') && message.includes('inventory.bulkImportDevices')) {
+    return 'El navegador ya está listo para importar, pero el backend que está corriendo en el servidor todavía no tiene activado el importador. Ejecuta git pull, compila el servidor y reinicia el proceso para que tome el procedimiento inventory.bulkImportDevices.';
+  }
+  return `No se pudo leer/importar el Excel: ${message}`;
+}
+
 function uploadInventoryFile(file: File, type: 'responsiva' | 'ine' | 'other', deviceId: string, userId?: string) {
   const form = new FormData();
   form.append('file', file);
@@ -144,7 +152,7 @@ export function InventoryPage() {
       setMessage(`Importación completada: ${result.created} nuevos, ${result.updated} actualizados.${errorText}`);
       await refreshInventory();
     },
-    onError: (error: Error) => setMessage(`No se pudo importar el Excel: ${error.message}`)
+    onError: (error: Error) => setMessage(getImportErrorMessage(error))
   });
 
   async function refreshInventory() {
@@ -280,7 +288,7 @@ export function InventoryPage() {
       setFilter('');
       setActiveTab('devices');
     } catch (error) {
-      setMessage(error instanceof Error ? `No se pudo leer/importar el Excel: ${error.message}` : 'No se pudo leer/importar el Excel.');
+      setMessage(getImportErrorMessage(error));
     }
   }
 
