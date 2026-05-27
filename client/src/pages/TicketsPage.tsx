@@ -118,7 +118,7 @@ export function TicketsPage() {
 
           <div className="ticket-board full-board">
             <div className="ticket-board-head">
-              <span>ID de Ticket</span><span>Líder/Usuario</span><span>Equipo a Revisar</span><span>Descripción del Fallo</span><span>Especificaciones PC</span><span>Fecha de Reporte</span><span>Prioridad</span><span>Estatus</span><span>Fecha de Resolución</span><span>Notas Técnicas</span>
+              <span>ID de Ticket</span><span>Líder/Usuario</span><span>Equipo a Revisar</span><span>Descripción del Fallo</span><span>Especificaciones PC</span><span>Fecha de Reporte</span><span>Prioridad</span><span>Estatus</span><span>Fecha de Resolución</span>
             </div>
             {tickets.data?.map((ticket: any) => {
               const isExpanded = expandedTicket === ticket.id;
@@ -139,7 +139,6 @@ export function TicketsPage() {
                   </select>
                 </label> : <em className={`status-pill status-${ticket.status}`}>{statusLabel(ticket.status)}</em>}
                 <small>{formatDate(ticket.resolvedAt)}</small>
-                <span className="notes-cell">{ticket.technicalNotes || '—'}</span>
                 {canExpand && isExpanded && <div className="admin-ticket-detail">
                   <div><strong>Correo del usuario</strong><span>{ticket.creatorEmail || 'No disponible'}</span></div>
                   <label>Notas técnicas<textarea value={technicalNotes[ticket.id] ?? ticket.technicalNotes ?? ''} onChange={(event) => setTechnicalNotes((current) => ({ ...current, [ticket.id]: event.target.value }))} placeholder="Diagnóstico, acciones realizadas, piezas o seguimiento." /></label>
