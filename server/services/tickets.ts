@@ -122,8 +122,7 @@ export async function updateTicketStatus(input: { id: string; actorId: string; s
     ticketId: input.id,
     actorId: input.actorId,
     action: input.status === 'resolved' ? 'closed' : 'status_changed',
-    fromStatus: current.status,
-    toStatus: input.status,
+    status: input.status,
     notes: input.technicalNotes ?? null
   });
   const [ticket] = await db.select().from(tickets).where(eq(tickets.id, input.id));

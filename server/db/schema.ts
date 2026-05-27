@@ -100,8 +100,7 @@ export const ticketAudits = mysqlTable('ticket_audits', {
   ticketId: varchar('ticket_id', { length: 32 }).notNull(),
   actorId: varchar('actor_id', { length: 32 }),
   action: auditActionEnum.notNull(),
-  fromStatus: ticketStatusEnum,
-  toStatus: ticketStatusEnum,
+  status: ticketStatusEnum.notNull().default('pending'),
   notes: text('notes'),
   metadata: json('metadata'),
   createdAt: timestamp('created_at').notNull().defaultNow()
