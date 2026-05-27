@@ -1,14 +1,15 @@
-node_modules
+node_modules/
+dist/
+build/
+.next/
 .env
 .env.*
 !.env.example
-dist
-build
-coverage
-uploads/*
-!uploads/.gitkeep
-apps/server/prisma/migrations/dev.db
+*.log
 .DS_Store
-npm-debug.log*
+coverage/
+client/dist/
+server/dist/
 
+# TypeScript incremental build artifacts
 *.tsbuildinfo

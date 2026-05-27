@@ -1,128 +1,48 @@
-# Guía de despliegue manual en Ubuntu
+# Despliegue Ubuntu local - Tickets BADABUN
 
-Esta guía prepara el sistema para ejecución local con acceso por DDNS, Nginx como proxy reverso, PostgreSQL como base de datos y Node.js como runtime. La aplicación está diseñada para ejecutarse como servicio tradicional, **no serverless**, y no requiere APIs propietarias.
+Este proyecto está diseñado para correr en un servidor local Ubuntu dentro de `/var/www/tickets/`, con DDNS `http://ticketsbd.ddns.net`, Nginx, PM2 y MySQL.
 
-## Supuestos de infraestructura
+## 1. Base de datos MySQL
 
-| Elemento | Valor recomendado |
-|---|---|
-| Sistema operativo | Ubuntu Server 22.04 LTS o superior |
-| Runtime | Node.js 20 o superior |
-| Base de datos | PostgreSQL 16 o una versión soportada por Prisma |
-| Proxy | Nginx |
-| Dominio | DDNS ya apuntando al servidor |
-| SSL | Let's Encrypt mediante Certbot |
-
-## Instalación de paquetes base
-
-```bash
-sudo apt update
-sudo apt install -y nginx postgresql postgresql-contrib git curl ufw
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
-node -v
-npm -v
+```sql
+CREATE DATABASE badabun_tickets CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'tickets_user'@'localhost' IDENTIFIED BY 'CAMBIAR_PASSWORD';
+GRANT ALL PRIVILEGES ON badabun_tickets.* TO 'tickets_user'@'localhost';
+FLUSH PRIVILEGES;
 ```
 
-## Preparar PostgreSQL
+## 2. Variables de entorno
 
-```bash
-sudo -u postgres psql
-CREATE DATABASE tickets_inventory;
-CREATE USER tickets_user WITH ENCRYPTED PASSWORD 'CAMBIA_ESTA_PASSWORD';
-GRANT ALL PRIVILEGES ON DATABASE tickets_inventory TO tickets_user;
-\q
+Crear `/var/www/tickets/.env` tomando como base `.env.example`. No subir `.env` a GitHub.
+
+```env
+PUBLIC_APP_URL=http://ticketsbd.ddns.net
+CORS_ORIGIN=http://ticketsbd.ddns.net
+GOOGLE_CALLBACK_URL=http://ticketsbd.ddns.net/api/auth/google/callback
 ```
 
-Ajusta `DATABASE_URL` en `.env` con el usuario, contraseña y base reales.
+El `GOOGLE_CLIENT_SECRET` debe colocarse manualmente en el servidor.
 
-## Instalar aplicación
-
-```bash
-sudo mkdir -p /opt/sistema-tickets-inventario
-sudo chown -R $USER:$USER /opt/sistema-tickets-inventario
-git clone TU_REPOSITORIO_GITHUB /opt/sistema-tickets-inventario
-cd /opt/sistema-tickets-inventario
-npm ci
-cp .env.example .env
-nano .env
-npm run prisma:generate
-npm run prisma:migrate -w apps/server
-npm run seed -w apps/server
-npm run build
-```
-
-## Preparar archivos locales
+## 3. Instalar, migrar y compilar
 
 ```bash
-sudo mkdir -p /var/lib/sistema-tickets-inventario/uploads
-sudo chown -R www-data:www-data /var/lib/sistema-tickets-inventario
+cd /var/www/tickets
+pnpm install
+pnpm db:migrate
+pnpm build
+pm2 start ecosystem.config.cjs
+pm2 save
 ```
 
-En `.env`, usa:
+## 4. Nginx
 
-```txt
-UPLOAD_DIR=/var/lib/sistema-tickets-inventario/uploads
-```
-
-## Frontend estático
+Copiar `deploy/nginx/ticketsbd.ddns.net.conf` a `/etc/nginx/sites-available/ticketsbd.ddns.net.conf` y enlazarlo en `sites-enabled`.
 
 ```bash
-sudo mkdir -p /var/www/sistema-tickets-inventario/client
-sudo rsync -av --delete apps/client/dist/ /var/www/sistema-tickets-inventario/client/
-sudo chown -R www-data:www-data /var/www/sistema-tickets-inventario
-```
-
-## Servicio systemd
-
-```bash
-sudo cp deploy/systemd/sistema-tickets-api.service /etc/systemd/system/sistema-tickets-api.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now sistema-tickets-api
-sudo systemctl status sistema-tickets-api
-```
-
-Si el servicio falla, revisa logs con:
-
-```bash
-journalctl -u sistema-tickets-api -f
-```
-
-## Nginx
-
-Edita `deploy/nginx/sistema-tickets-inventario.conf` y reemplaza `tu-ddns.example.com` por tu DDNS real. Después:
-
-```bash
-sudo cp deploy/nginx/sistema-tickets-inventario.conf /etc/nginx/sites-available/sistema-tickets-inventario.conf
-sudo ln -s /etc/nginx/sites-available/sistema-tickets-inventario.conf /etc/nginx/sites-enabled/sistema-tickets-inventario.conf
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-## SSL con Let's Encrypt
+## Reglas obligatorias
 
-```bash
-sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d tu-ddns.example.com
-```
-
-## Firewall
-
-```bash
-sudo ufw allow OpenSSH
-sudo ufw allow 'Nginx Full'
-sudo ufw enable
-sudo ufw status
-```
-
-## Checklist antes de producción
-
-| Revisión | Estado esperado |
-|---|---|
-| `JWT_SECRET` | Cadena aleatoria larga, no incluida en GitHub. |
-| `CORS_ORIGIN` | Dominio real del frontend. |
-| `GOOGLE_CALLBACK_URL` | URL pública con `/api/auth/google/callback`. |
-| PostgreSQL | No expuesto públicamente salvo necesidad explícita. |
-| `UPLOAD_DIR` | Fuera del repositorio, con permisos de `www-data`. |
-| Nginx | `nginx -t` sin errores. |
-| Servicio API | `systemctl status sistema-tickets-api` activo. |
+No subir `.env`, no subir compilados, no usar PostgreSQL, no usar Prisma y no introducir dependencias de infraestructura propietaria.

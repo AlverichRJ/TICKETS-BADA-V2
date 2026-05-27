@@ -1,20 +1,22 @@
 {
-  "name": "sistema-tickets-inventario",
+  "name": "tickets-bada",
   "version": "1.0.0",
   "private": true,
-  "description": "Sistema interno local para gestión de tickets e inventario con Express, React, PostgreSQL y Prisma.",
+  "description": "Sistema interno BADABUN para tickets e inventario con React, Express, tRPC, Drizzle y MySQL.",
   "type": "module",
-  "workspaces": ["apps/server", "apps/client"],
+  "packageManager": "pnpm@9.15.4",
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
-    "postinstall": "npm run prisma:generate",
-    "dev": "concurrently -n SERVER,CLIENT -c blue,green \"npm run dev -w apps/server\" \"npm run dev -w apps/client\"",
-    "build": "npm run build -w apps/server && npm run build -w apps/client",
-    "start": "npm run start -w apps/server",
-    "lint": "npm run lint -w apps/server && npm run lint -w apps/client",
+    "dev": "concurrently -n SERVER,CLIENT -c blue,green \"pnpm --filter @tickets/server dev\" \"pnpm --filter @tickets/client dev\"",
+    "build": "pnpm --filter @tickets/server build && pnpm --filter @tickets/client build",
+    "start": "pnpm --filter @tickets/server start",
+    "lint": "pnpm --filter @tickets/server lint && pnpm --filter @tickets/client lint",
     "format": "prettier --write .",
-    "prisma:generate": "npm run prisma:generate -w apps/server",
-    "prisma:migrate": "npm run prisma:migrate -w apps/server",
-    "prisma:studio": "npm run prisma:studio -w apps/server"
+    "db:generate": "pnpm --filter @tickets/server db:generate",
+    "db:migrate": "pnpm --filter @tickets/server db:migrate"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
