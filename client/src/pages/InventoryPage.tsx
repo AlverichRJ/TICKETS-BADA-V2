@@ -140,6 +140,7 @@ export function InventoryPage() {
   const [responsivaSearch, setResponsivaSearch] = useState('');
   const [responsivaDepartmentFilter, setResponsivaDepartmentFilter] = useState('');
   const [responsivaPage, setResponsivaPage] = useState(1);
+  const [expandedDeviceGroups, setExpandedDeviceGroups] = useState<string[]>([]);
   const [newDepartmentName, setNewDepartmentName] = useState('');
   const [newDepartmentDescription, setNewDepartmentDescription] = useState('');
   const [message, setMessage] = useState('');
@@ -170,6 +171,30 @@ export function InventoryPage() {
     return (devices.data || []).filter((device: any) => [device.equipment, device.serialNumber, device.description].some((value) => String(value || '').toLowerCase().includes(term)));
   }, [devices.data, filter]);
 
+  const deviceGroups = useMemo(() => {
+    const groups = new Map<string, { key: string; equipment: string; devices: any[] }>();
+    filteredDevices.forEach((device: any) => {
+      const equipment = String(device.equipment || 'Sin equipo').trim() || 'Sin equipo';
+      const key = normalizeHeader(equipment) || 'sin-equipo';
+      const existing = groups.get(key) || { key, equipment, devices: [] };
+      existing.devices.push(device);
+      groups.set(key, existing);
+    });
+
+    return Array.from(groups.values())
+      .map((group) => ({
+        ...group,
+        devices: group.devices.sort((a: any, b: any) => String(a.serialNumber || '').localeCompare(String(b.serialNumber || ''))),
+        availableCount: group.devices.filter((device: any) => device.state === 'available').length,
+        assignedCount: group.devices.filter((device: any) => device.state === 'assigned').length,
+        maintenanceCount: group.devices.filter((device: any) => device.state === 'maintenance').length,
+        retiredCount: group.devices.filter((device: any) => device.state === 'retired').length,
+        activeLoanCount: group.devices.filter((device: any) => device.loanStatus === 'active').length,
+        returnedLoanCount: group.devices.filter((device: any) => device.loanStatus === 'returned').length
+      }))
+      .sort((a, b) => a.equipment.localeCompare(b.equipment));
+  }, [filteredDevices]);
+
   const filteredResponsivas = useMemo(() => {
     const term = responsivaSearch.toLowerCase();
     return (responsivas.data || []).filter((item: any) => {
@@ -186,6 +211,10 @@ export function InventoryPage() {
 
   function resetDeviceForm() {
     setDeviceForm(emptyDevice);
+  }
+
+  function toggleDeviceGroup(groupKey: string) {
+    setExpandedDeviceGroups((current) => (current.includes(groupKey) ? current.filter((key) => key !== groupKey) : [...current, groupKey]));
   }
 
   function resetResponsivaForm() {
@@ -359,10 +388,28 @@ export function InventoryPage() {
 
           <div className="panel blueprint-surface inventory-board-panel">
             <div className="panel-title-row"><div><span className="eyebrow">LISTADO</span><h3>Equipos registrados</h3></div><div className="filter-bar"><label>Buscar<input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Serie, equipo o descripción" /></label></div></div>
-            <div className="inventory-board">
-              <div className="inventory-board-head"><span>Serie</span><span>Equipo</span><span>Descripción</span><span>Estado</span><span>Préstamo</span><span>Acciones</span></div>
-              {filteredDevices.map((device: any) => <div className="inventory-board-row" key={device.id}><strong>{device.serialNumber}</strong><span>{device.equipment}</span><span>{device.description || '—'}</span><em className={`status-pill ${stateClass[device.state] || ''}`}>{statusLabel(device.state)}</em><em className={`status-pill ${stateClass[device.loanStatus] || ''}`}>{device.loanStatus === 'returned' ? 'Entregado' : 'Activo'}</em><button onClick={() => editDevice(device)}><Pencil size={14} /> Editar</button></div>)}
-              {!filteredDevices.length && <p className="empty-state">No hay equipos registrados.</p>}
+            <div className="inventory-board device-group-board">
+              {deviceGroups.map((group) => {
+                const expanded = expandedDeviceGroups.includes(group.key) || Boolean(filter.trim());
+                return (
+                  <article className="device-group-card" key={group.key}>
+                    <button type="button" className="device-group-summary" onClick={() => toggleDeviceGroup(group.key)} aria-expanded={expanded}>
+                      <span className="device-group-toggle">{expanded ? '−' : '+'}</span>
+                      <div className="device-group-main"><strong>{group.equipment}</strong><small>{group.devices.length} unidad{group.devices.length === 1 ? '' : 'es'} registrada{group.devices.length === 1 ? '' : 's'}</small></div>
+                      <span className="device-group-metric"><strong>{group.availableCount}</strong> disponibles</span>
+                      <span className="device-group-metric"><strong>{group.assignedCount}</strong> asignadas</span>
+                      <span className="device-group-metric"><strong>{group.returnedLoanCount}</strong> entregadas</span>
+                    </button>
+                    {expanded && (
+                      <div className="device-group-detail">
+                        <div className="inventory-board-head device-detail-head"><span>Serie</span><span>Descripción</span><span>Estado</span><span>Préstamo</span><span>Acciones</span></div>
+                        {group.devices.map((device: any) => <div className="inventory-board-row device-detail-row" key={device.id}><strong>{device.serialNumber}</strong><span>{device.description || '—'}</span><em className={`status-pill ${stateClass[device.state] || ''}`}>{statusLabel(device.state)}</em><em className={`status-pill ${stateClass[device.loanStatus] || ''}`}>{device.loanStatus === 'returned' ? 'Entregado' : 'Activo'}</em><button onClick={() => editDevice(device)}><Pencil size={14} /> Editar</button></div>)}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+              {!deviceGroups.length && <p className="empty-state">No hay equipos registrados.</p>}
             </div>
           </div>
         </div>

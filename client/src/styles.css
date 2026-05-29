@@ -251,3 +251,116 @@ button { cursor: pointer; }
   .inventory-tabs { width: 100%; }
   .inventory-tabs button { flex: 1; }
 }
+
+.device-group-board {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.device-group-card {
+  border: 1px solid rgba(17, 24, 39, 0.18);
+  background: rgba(255, 252, 244, 0.88);
+}
+
+.device-group-summary {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 42px minmax(220px, 1fr) repeat(3, minmax(120px, 160px));
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: #0f172a;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.device-group-summary[aria-expanded="true"] {
+  border-bottom-color: rgba(17, 24, 39, 0.14);
+  background: rgba(42, 91, 132, 0.08);
+}
+
+.device-group-summary:hover {
+  background: rgba(42, 91, 132, 0.1);
+}
+
+.device-group-toggle {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #0f172a;
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1;
+  background: #fffaf0;
+}
+
+.device-group-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.device-group-main strong {
+  font-size: 15px;
+  text-transform: uppercase;
+}
+
+.device-group-main small {
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.device-group-metric {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgba(42, 91, 132, 0.2);
+  background: rgba(232, 239, 249, 0.85);
+  border-radius: 999px;
+  padding: 8px 10px;
+  color: #1f3f5f;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.device-group-metric strong {
+  font-size: 14px;
+}
+
+.device-group-detail {
+  padding: 12px;
+}
+
+.device-detail-head,
+.device-detail-row {
+  grid-template-columns: minmax(140px, 180px) minmax(220px, 1fr) minmax(110px, 130px) minmax(110px, 130px) minmax(110px, 120px);
+}
+
+.device-detail-row {
+  background: rgba(255, 255, 255, 0.58);
+}
+
+@media (max-width: 980px) {
+  .device-group-summary {
+    grid-template-columns: 38px 1fr;
+  }
+
+  .device-group-metric {
+    grid-column: 2;
+    justify-content: flex-start;
+    width: fit-content;
+  }
+
+  .device-detail-head,
+  .device-detail-row {
+    grid-template-columns: 1fr;
+  }
+}
