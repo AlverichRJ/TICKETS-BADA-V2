@@ -103,9 +103,10 @@ button { cursor: pointer; }
 .row-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .row-actions em { font-style: normal; font-family: 'Roboto Mono', monospace; font-size: .74rem; background: #e7e1d5; padding: .35rem .55rem; }
 .row-actions button, .table-row button { border: 1px solid #0f172a; background: #fff; padding: .55rem .75rem; cursor: pointer; font-weight: 800; }
-.form-stack { display: grid; gap: .9rem; }
-.form-stack label { display: grid; gap: .4rem; font-weight: 700; color: #253142; }
+.form-stack { display: grid; gap: .9rem; min-width: 0; }
+.form-stack label { display: grid; gap: .4rem; min-width: 0; max-width: 100%; font-weight: 700; color: #253142; }
 .form-stack input, .form-stack textarea, .form-stack select, .table-row select { border: 1px solid #c8beae; background: #fffaf1; padding: .75rem; color: var(--ink); }
+.form-stack input, .form-stack textarea, .form-stack select { display: block; width: 100%; max-width: 100%; min-width: 0; }
 .form-stack textarea { min-height: 120px; resize: vertical; }
 .blueprint-form input:focus, .blueprint-form textarea:focus, .blueprint-form select:focus, .filter-bar input:focus, .filter-bar select:focus { outline: 2px solid rgba(35,79,120,.35); border-color: var(--blue); }
 .primary-button { padding: .85rem 1rem; border: 2px solid #0f172a; color: white; background: var(--blue); font-weight: 800; cursor: pointer; }
@@ -214,10 +215,11 @@ button { cursor: pointer; }
 .responsiva-filters { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(200px, 320px); gap: .75rem; margin-bottom: 1rem; }
 .responsiva-filters label { display: grid; gap: .35rem; font-weight: 800; color: #334155; }
 .responsiva-filters input, .responsiva-filters select { width: 100%; }
-.department-creator { display: grid; gap: .6rem; padding: .85rem; border: 1px dashed #315d86; background: rgba(49,93,134,.07); }
+.department-creator { display: grid; gap: .6rem; min-width: 0; max-width: 100%; padding: .85rem; border: 1px dashed #315d86; background: rgba(49,93,134,.07); }
 .department-creator strong { display: block; color: #0f172a; }
 .department-creator span { color: var(--muted); font-size: .88rem; line-height: 1.45; }
-.department-creator-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: .55rem; align-items: end; }
+.department-creator-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: .55rem; align-items: end; min-width: 0; }
+.department-creator-grid input { width: 100%; min-width: 0; max-width: 100%; }
 .department-create-button { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; min-height: 42px; padding: .55rem .8rem; border: 1px solid #0f172a; background: #fffaf1; font-weight: 900; }
 .responsiva-list { display: grid; gap: .85rem; }
 .responsiva-card { display: grid; grid-template-columns: minmax(220px, 1fr) auto minmax(180px, 250px) auto; gap: .8rem; align-items: center; padding: 1rem; border: 1px solid #d8cfc2; background: rgba(255,250,241,.84); }
@@ -235,7 +237,7 @@ button { cursor: pointer; }
 .import-panel p { color: var(--muted); line-height: 1.7; max-width: 760px; }
 .excel-drop { display: grid; place-items: center; gap: .65rem; min-height: 190px; border: 2px dashed #315d86; background: rgba(49,93,134,.08); cursor: pointer; text-align: center; }
 .excel-drop svg { color: var(--blue); }
-.excel-drop input { max-width: 320px; }
+.excel-drop input { width: 100%; max-width: 320px; }
 .import-summary { display: inline-flex; align-items: center; gap: .5rem; padding: .75rem .9rem; border: 1px solid #d6cebf; background: #f8f4ec; color: #334155; }
 .import-action { justify-self: start; min-width: 240px; }
 @media (max-width: 1100px) {
