@@ -141,6 +141,7 @@ export function InventoryPage() {
   const [responsivaDepartmentFilter, setResponsivaDepartmentFilter] = useState('');
   const [responsivaPage, setResponsivaPage] = useState(1);
   const [expandedDeviceGroups, setExpandedDeviceGroups] = useState<string[]>([]);
+  const [deviceModelMode, setDeviceModelMode] = useState<'existing' | 'new'>('existing');
   const [newDepartmentName, setNewDepartmentName] = useState('');
   const [newDepartmentDescription, setNewDepartmentDescription] = useState('');
   const [message, setMessage] = useState('');
@@ -170,6 +171,18 @@ export function InventoryPage() {
     const term = filter.toLowerCase();
     return (devices.data || []).filter((device: any) => [device.equipment, device.serialNumber, device.description].some((value) => String(value || '').toLowerCase().includes(term)));
   }, [devices.data, filter]);
+
+  const deviceModelOptions = useMemo(() => {
+    const models = new Map<string, { key: string; equipment: string; count: number }>();
+    (devices.data || []).forEach((device: any) => {
+      const equipment = String(device.equipment || '').trim();
+      const key = normalizeHeader(equipment);
+      if (!equipment || !key) return;
+      const existing = models.get(key);
+      models.set(key, existing ? { ...existing, count: existing.count + 1 } : { key, equipment, count: 1 });
+    });
+    return Array.from(models.values()).sort((a, b) => a.equipment.localeCompare(b.equipment));
+  }, [devices.data]);
 
   const deviceGroups = useMemo(() => {
     const groups = new Map<string, { key: string; equipment: string; devices: any[] }>();
@@ -211,6 +224,26 @@ export function InventoryPage() {
 
   function resetDeviceForm() {
     setDeviceForm(emptyDevice);
+    setDeviceModelMode('existing');
+  }
+
+  function resolveCanonicalEquipment(equipment: string) {
+    const key = normalizeHeader(equipment);
+    return deviceModelOptions.find((model) => model.key === key)?.equipment || equipment.trim();
+  }
+
+  function selectExistingEquipment(equipment: string) {
+    setDeviceForm((current) => ({ ...current, equipment }));
+  }
+
+  function startNewEquipmentModel() {
+    setDeviceModelMode('new');
+    setDeviceForm((current) => ({ ...current, equipment: '' }));
+  }
+
+  function useExistingEquipmentModel() {
+    setDeviceModelMode('existing');
+    setDeviceForm((current) => ({ ...current, equipment: '' }));
   }
 
   function toggleDeviceGroup(groupKey: string) {
@@ -225,6 +258,7 @@ export function InventoryPage() {
 
   function editDevice(device: any) {
     setActiveTab('devices');
+    setDeviceModelMode('existing');
     setDeviceForm({
       id: device.id,
       equipment: device.equipment || '',
@@ -285,14 +319,17 @@ export function InventoryPage() {
 
   async function submitDevice(event: FormEvent) {
     event.preventDefault();
-    const payload = { ...deviceForm };
+    const canonicalEquipment = resolveCanonicalEquipment(deviceForm.equipment);
+    const payload = { ...deviceForm, equipment: canonicalEquipment, serialNumber: deviceForm.serialNumber.trim(), description: deviceForm.description.trim() };
+    const groupKey = normalizeHeader(canonicalEquipment);
     if (deviceForm.id) {
       await updateDevice.mutateAsync({ ...payload, id: deviceForm.id });
-      setMessage('Equipo actualizado correctamente.');
+      setMessage(`Unidad ${payload.serialNumber} actualizada dentro de ${canonicalEquipment}.`);
     } else {
       await createDevice.mutateAsync(payload);
-      setMessage('Equipo agregado correctamente.');
+      setMessage(`Unidad ${payload.serialNumber} agregada al modelo ${canonicalEquipment}.`);
     }
+    if (groupKey) setExpandedDeviceGroups((current) => (current.includes(groupKey) ? current : [...current, groupKey]));
     resetDeviceForm();
   }
 
@@ -378,8 +415,16 @@ export function InventoryPage() {
           <aside className="panel blueprint-surface form-panel">
             <div className="panel-title-row"><div><span className="eyebrow">EQUIPO</span><h3>{deviceForm.id ? 'Editar equipo' : 'Agregar equipo'}</h3></div>{deviceForm.id && <button className="secondary-link" onClick={resetDeviceForm}>Nuevo</button>}</div>
             <form className="form-stack blueprint-form" onSubmit={submitDevice}>
-              <label>Equipo<input required value={deviceForm.equipment} onChange={(e) => setDeviceForm({ ...deviceForm, equipment: e.target.value })} /></label>
-              <label>Número de serie<input required value={deviceForm.serialNumber} onChange={(e) => setDeviceForm({ ...deviceForm, serialNumber: e.target.value })} /></label>
+              <div className="equipment-model-field">
+                <div className="equipment-model-head"><strong>Modelo / tipo de equipo</strong><button type="button" className="secondary-link" onClick={deviceModelMode === 'new' ? useExistingEquipmentModel : startNewEquipmentModel}>{deviceModelMode === 'new' ? 'Usar existente' : 'Nuevo modelo'}</button></div>
+                {deviceModelMode === 'new' || !deviceModelOptions.length ? (
+                  <label>Nombre del nuevo modelo<input required value={deviceForm.equipment} onChange={(e) => setDeviceForm({ ...deviceForm, equipment: e.target.value })} placeholder="Ej. IPAD 10, IPHONE 15, LENOVO BLUE" /></label>
+                ) : (
+                  <label>Seleccionar modelo existente<select required value={deviceForm.equipment} onChange={(e) => selectExistingEquipment(e.target.value)}><option value="">Seleccionar modelo</option>{deviceModelOptions.map((model) => <option key={model.key} value={model.equipment}>{model.equipment} · {model.count} unidad{model.count === 1 ? '' : 'es'}</option>)}</select></label>
+                )}
+                <small>Si escribes un nombre que ya existe con otra capitalización, se guardará bajo el modelo existente para no duplicar grupos.</small>
+              </div>
+              <label>Número de serie de la unidad<input required value={deviceForm.serialNumber} onChange={(e) => setDeviceForm({ ...deviceForm, serialNumber: e.target.value })} placeholder="Serie única de esta unidad física" /></label>
               <div className="form-grid-two"><label>Estado<select value={deviceForm.state} onChange={(e) => setDeviceForm({ ...deviceForm, state: e.target.value as DeviceState })}><option value="available">Disponible</option><option value="assigned">Asignado</option><option value="maintenance">Mantenimiento</option><option value="retired">Retirado</option></select></label><label>Préstamo<select value={deviceForm.loanStatus} onChange={(e) => setDeviceForm({ ...deviceForm, loanStatus: e.target.value as LoanStatus })}><option value="active">Activo</option><option value="returned">Entregado</option></select></label></div>
               <label>Descripción<textarea value={deviceForm.description} onChange={(e) => setDeviceForm({ ...deviceForm, description: e.target.value })} placeholder="Marca, modelo, observaciones físicas o accesorios" /></label>
               <button className="primary-button blueprint-button" disabled={!isAdmin || createDevice.isLoading || updateDevice.isLoading}>{deviceForm.id ? 'Guardar cambios' : 'Guardar equipo'}</button>

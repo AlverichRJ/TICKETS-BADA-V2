@@ -364,3 +364,35 @@ button { cursor: pointer; }
     grid-template-columns: 1fr;
   }
 }
+
+.equipment-model-field {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: 1px dashed rgba(15, 23, 42, 0.22);
+  background: rgba(248, 244, 236, 0.72);
+}
+
+.equipment-model-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.equipment-model-head strong {
+  color: #253142;
+  font-size: 0.92rem;
+}
+
+.equipment-model-field small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+@media (max-width: 520px) {
+  .equipment-model-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
