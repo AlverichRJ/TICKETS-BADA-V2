@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { trpc } from './_core/trpc';
 import { Layout } from './components/Layout';
 import { DashboardPage } from './pages/DashboardPage';
+import { DigitalServicesPage } from './pages/DigitalServicesPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { LoginPage } from './pages/LoginPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -23,6 +24,7 @@ export function App() {
         <Route index element={<DashboardPage />} />
         <Route path="tickets" element={<TicketsPage />} />
         <Route path="inventario" element={<InventoryPage />} />
+        <Route path="servicios-digitales" element={<DigitalServicesPage />} />
         <Route path="usuarios" element={<UsersPage />} />
         <Route path="configuracion" element={<SettingsPage />} />
       </Route>

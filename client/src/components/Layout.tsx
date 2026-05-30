@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Boxes, LogOut, Settings, Ticket, Users, Wrench } from 'lucide-react';
+import { Boxes, CreditCard, LogOut, Settings, Ticket, Users, Wrench } from 'lucide-react';
 import { trpc } from '../_core/trpc';
 
 type LayoutProps = {
@@ -21,6 +21,7 @@ export function Layout({ user }: LayoutProps) {
     { to: '/tickets', label: 'Tickets', icon: Ticket },
     ...(user.role === 'admin' ? [
       { to: '/inventario', label: 'Inventario', icon: Wrench },
+      { to: '/servicios-digitales', label: 'Servicios Digitales', icon: CreditCard },
       { to: '/usuarios', label: 'Usuarios', icon: Users },
       { to: '/configuracion', label: 'Sistema', icon: Settings }
     ] : [])

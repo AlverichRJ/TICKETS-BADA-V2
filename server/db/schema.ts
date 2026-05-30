@@ -1,5 +1,5 @@
 import { relations, sql } from 'drizzle-orm';
-import { boolean, index, int, json, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/mysql-core';
+import { boolean, date, decimal, index, int, json, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/mysql-core';
 
 export const roleEnum = mysqlEnum('role', ['admin', 'user']);
 export const ticketPriorityEnum = mysqlEnum('ticket_priority', ['high', 'medium', 'low']);
@@ -9,6 +9,11 @@ export const loanStatusEnum = mysqlEnum('loan_status', ['active', 'returned']);
 export const fileTypeEnum = mysqlEnum('file_type', ['responsiva', 'ine', 'other']);
 export const responsivaStatusEnum = mysqlEnum('responsiva_status', ['active', 'returned', 'cancelled']);
 export const auditActionEnum = mysqlEnum('audit_action', ['created', 'updated', 'status_changed', 'assigned', 'closed', 'file_attached']);
+export const digitalServiceCategoryEnum = mysqlEnum('digital_service_category', ['ai', 'editing', 'hosting', 'security', 'productivity', 'business', 'design', 'other']);
+export const digitalServiceBillingCycleEnum = mysqlEnum('digital_service_billing_cycle', ['monthly', 'quarterly', 'annual', 'one_time']);
+export const digitalServiceStatusEnum = mysqlEnum('digital_service_status', ['active', 'paused', 'cancelled', 'expired']);
+export const digitalServicePriorityEnum = mysqlEnum('digital_service_priority', ['high', 'medium', 'low']);
+export const paymentMethodTypeEnum = mysqlEnum('payment_method_type', ['card', 'cash', 'transfer', 'account', 'other']);
 
 export const departments = mysqlTable('departments', {
   id: varchar('id', { length: 32 }).primaryKey(),
@@ -154,6 +159,65 @@ export const ticketSequences = mysqlTable('ticket_sequences', {
   id: int('id').primaryKey().default(1),
   value: int('value').notNull().default(0)
 });
+
+export const paymentMethods = mysqlTable('payment_methods', {
+  id: varchar('id', { length: 32 }).primaryKey(),
+  name: varchar('name', { length: 180 }).notNull(),
+  type: paymentMethodTypeEnum.notNull().default('other'),
+  ownerName: varchar('owner_name', { length: 180 }),
+  lastFour: varchar('last_four', { length: 8 }),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow()
+}, (table) => ({
+  nameIdx: uniqueIndex('payment_methods_name_idx').on(table.name),
+  activeIdx: index('payment_methods_active_idx').on(table.isActive)
+}));
+
+export const digitalServices = mysqlTable('digital_services', {
+  id: varchar('id', { length: 32 }).primaryKey(),
+  name: varchar('name', { length: 180 }).notNull(),
+  normalizedName: varchar('normalized_name', { length: 180 }).notNull(),
+  category: digitalServiceCategoryEnum.notNull().default('other'),
+  provider: varchar('provider', { length: 180 }),
+  websiteUrl: varchar('website_url', { length: 700 }),
+  description: text('description'),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow()
+}, (table) => ({
+  nameIdx: uniqueIndex('digital_services_normalized_name_idx').on(table.normalizedName),
+  categoryIdx: index('digital_services_category_idx').on(table.category),
+  activeIdx: index('digital_services_active_idx').on(table.isActive)
+}));
+
+export const digitalServiceSubscriptions = mysqlTable('digital_service_subscriptions', {
+  id: varchar('id', { length: 32 }).primaryKey(),
+  serviceId: varchar('service_id', { length: 32 }).notNull(),
+  departmentId: varchar('department_id', { length: 32 }),
+  responsibleUserId: varchar('responsible_user_id', { length: 32 }),
+  responsibleName: varchar('responsible_name', { length: 180 }),
+  billingCycle: digitalServiceBillingCycleEnum.notNull().default('monthly'),
+  amount: decimal('amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  currency: varchar('currency', { length: 8 }).notNull().default('MXN'),
+  paymentMethodId: varchar('payment_method_id', { length: 32 }),
+  purchaseDate: date('purchase_date'),
+  renewalDate: date('renewal_date'),
+  renewalDay: int('renewal_day'),
+  status: digitalServiceStatusEnum.notNull().default('active'),
+  priority: digitalServicePriorityEnum.notNull().default('medium'),
+  usageDescription: text('usage_description'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow()
+}, (table) => ({
+  serviceIdx: index('digital_subscriptions_service_id_idx').on(table.serviceId),
+  departmentIdx: index('digital_subscriptions_department_id_idx').on(table.departmentId),
+  responsibleIdx: index('digital_subscriptions_responsible_user_id_idx').on(table.responsibleUserId),
+  paymentMethodIdx: index('digital_subscriptions_payment_method_id_idx').on(table.paymentMethodId),
+  statusIdx: index('digital_subscriptions_status_idx').on(table.status),
+  renewalIdx: index('digital_subscriptions_renewal_date_idx').on(table.renewalDate)
+}));
 
 export const systemSettings = mysqlTable('system_settings', {
   id: int('id').primaryKey().default(1),
