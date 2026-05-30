@@ -40,6 +40,11 @@ export type SubscriptionInput = {
   notes?: string;
 };
 
+export type ImportSubscriptionInput = SubscriptionInput & {
+  sourceRow?: number;
+  sourceSheet?: string;
+};
+
 export type PaymentMethodInput = {
   name: string;
   type?: PaymentMethodType;
@@ -56,6 +61,10 @@ export type DigitalServiceFilters = {
 
 function normalizeName(value: string) {
   return value.trim().replace(/\s+/g, ' ').toUpperCase();
+}
+
+function normalizeKeyPart(value?: string | null) {
+  return normalizeName(String(value || ''));
 }
 
 function cleanOptional(value?: string) {
@@ -78,6 +87,35 @@ function monthlyEquivalent(amount: number, cycle: BillingCycle) {
   if (cycle === 'quarterly') return amount / 3;
   if (cycle === 'one_time') return 0;
   return amount;
+}
+
+function buildImportDuplicateKey(input: {
+  serviceName?: string | null;
+  responsibleName?: string | null;
+  billingCycle?: string | null;
+  amount?: number | string | null;
+  currency?: string | null;
+  paymentMethodName?: string | null;
+  renewalDate?: string | Date | null;
+  renewalDay?: number | null;
+  status?: string | null;
+}) {
+  const amount = Number(input.amount || 0).toFixed(2);
+  const renewalDate = input.renewalDate instanceof Date
+    ? input.renewalDate.toISOString().slice(0, 10)
+    : String(input.renewalDate || '').slice(0, 10);
+
+  return [
+    normalizeKeyPart(input.serviceName),
+    normalizeKeyPart(input.responsibleName),
+    normalizeKeyPart(input.billingCycle || 'monthly'),
+    amount,
+    normalizeKeyPart(input.currency || 'MXN'),
+    normalizeKeyPart(input.paymentMethodName),
+    renewalDate,
+    input.renewalDay || '',
+    normalizeKeyPart(input.status || 'active')
+  ].join('|');
 }
 
 async function resolveService(input: SubscriptionInput) {
@@ -329,6 +367,79 @@ export async function updateSubscription(input: SubscriptionInput & { id: string
   }).where(eq(digitalServiceSubscriptions.id, input.id));
   const [subscription] = await db.select().from(digitalServiceSubscriptions).where(eq(digitalServiceSubscriptions.id, input.id));
   return subscription;
+}
+
+export async function importSubscriptions(rows: ImportSubscriptionInput[]) {
+  const existingServices = await listDigitalServices({ status: 'all' });
+  const knownKeys = new Set<string>();
+
+  for (const service of existingServices) {
+    for (const subscription of service.subscriptions) {
+      knownKeys.add(buildImportDuplicateKey({
+        serviceName: service.name,
+        responsibleName: subscription.manualResponsibleName || subscription.responsibleName,
+        billingCycle: subscription.billingCycle,
+        amount: subscription.amount,
+        currency: subscription.currency,
+        paymentMethodName: subscription.paymentMethodName,
+        renewalDate: subscription.renewalDate,
+        renewalDay: subscription.renewalDay,
+        status: subscription.status
+      }));
+    }
+  }
+
+  let created = 0;
+  let skippedDuplicates = 0;
+  let skippedInvalid = 0;
+  const issues: Array<{ sourceRow?: number; sourceSheet?: string; serviceName?: string; reason: string }> = [];
+
+  for (const row of rows) {
+    if (!row.serviceName?.trim() || !Number.isFinite(Number(row.amount))) {
+      skippedInvalid += 1;
+      issues.push({ sourceRow: row.sourceRow, sourceSheet: row.sourceSheet, serviceName: row.serviceName, reason: 'Fila incompleta: falta servicio o monto válido.' });
+      continue;
+    }
+
+    const key = buildImportDuplicateKey({
+      serviceName: row.serviceName,
+      responsibleName: row.responsibleName,
+      billingCycle: row.billingCycle ?? 'monthly',
+      amount: row.amount,
+      currency: row.currency ?? 'MXN',
+      paymentMethodName: row.paymentMethodName,
+      renewalDate: row.renewalDate,
+      renewalDay: row.renewalDay,
+      status: row.status ?? 'active'
+    });
+
+    if (knownKeys.has(key)) {
+      skippedDuplicates += 1;
+      issues.push({ sourceRow: row.sourceRow, sourceSheet: row.sourceSheet, serviceName: row.serviceName, reason: 'Duplicado detectado: ya existe una suscripción equivalente.' });
+      continue;
+    }
+
+    await createSubscription({
+      ...row,
+      serviceName: row.serviceName.trim().replace(/\s+/g, ' '),
+      category: row.category ?? 'other',
+      billingCycle: row.billingCycle ?? 'monthly',
+      amount: Number(row.amount),
+      currency: row.currency ?? 'MXN',
+      status: row.status ?? 'active',
+      priority: row.priority ?? 'medium'
+    });
+    knownKeys.add(key);
+    created += 1;
+  }
+
+  return {
+    received: rows.length,
+    created,
+    skippedDuplicates,
+    skippedInvalid,
+    issues: issues.slice(0, 80)
+  };
 }
 
 export async function listServiceCatalog() {

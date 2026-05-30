@@ -5,6 +5,7 @@ import {
   createPaymentMethod,
   createSubscription,
   digitalServicesStats,
+  importSubscriptions,
   listDigitalServices,
   listPaymentMethods,
   listServiceCatalog,
@@ -57,6 +58,11 @@ const paymentMethodInput = z.object({
   isActive: z.boolean().optional()
 });
 
+const importSubscriptionInput = subscriptionInput.extend({
+  sourceRow: z.number().int().positive().optional(),
+  sourceSheet: z.string().trim().optional()
+});
+
 export const digitalServicesRouter = router({
   list: protectedProcedure.input(z.object({
     search: z.string().optional(),
@@ -70,5 +76,8 @@ export const digitalServicesRouter = router({
   updateService: adminProcedure.input(digitalServiceInput.extend({ id: z.string().min(2) })).mutation(({ input }) => updateDigitalService(input)),
   createSubscription: adminProcedure.input(subscriptionInput).mutation(({ input }) => createSubscription(input)),
   updateSubscription: adminProcedure.input(subscriptionInput.extend({ id: z.string().min(2) })).mutation(({ input }) => updateSubscription(input)),
+  importSubscriptions: adminProcedure.input(z.object({
+    rows: z.array(importSubscriptionInput).min(1).max(500)
+  })).mutation(({ input }) => importSubscriptions(input.rows)),
   createPaymentMethod: adminProcedure.input(paymentMethodInput).mutation(({ input }) => createPaymentMethod(input))
 });
