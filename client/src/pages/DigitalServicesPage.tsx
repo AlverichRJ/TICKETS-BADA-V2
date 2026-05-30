@@ -133,6 +133,24 @@ function parseRenewal(value: unknown) {
   return { notes: `Fecha de renovación importada sin normalizar: ${raw}` };
 }
 
+function getDigitalImportErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? 'Error desconocido');
+  const lower = message.toLowerCase();
+  if (message.includes('No "mutation"-procedure') && message.includes('digitalServices.importSubscriptions')) {
+    return 'El frontend ya tiene el botón de importación, pero el backend que está corriendo todavía no tiene activado el procedimiento digitalServices.importSubscriptions. Ejecuta git pull, pnpm build y reinicia PM2 para que el servidor cargue el backend nuevo.';
+  }
+  if (lower.includes('digital_services') || lower.includes('payment_methods') || lower.includes('doesn') || lower.includes('exist')) {
+    return `La importación llegó al backend, pero la base de datos parece no tener aplicada la migración de Servicios Digitales. Aplica drizzle/0002_digital_services.sql y vuelve a intentar. Detalle técnico: ${message}`;
+  }
+  if (message.includes('Permiso de administrador')) {
+    return 'Tu sesión no tiene permiso de administrador para ejecutar la importación. Inicia sesión con un usuario administrador.';
+  }
+  if (message.includes('Sesión requerida')) {
+    return 'La sesión expiró. Vuelve a iniciar sesión e intenta importar de nuevo.';
+  }
+  return `No se pudo importar el Excel: ${message}`;
+}
+
 function extractImportRows(workbook: XLSX.WorkBook): ImportRow[] {
   const preferredSheet = workbook.SheetNames.find((name) => normalizeText(name).includes('RESUMEN')) || workbook.SheetNames[0];
   const worksheet = workbook.Sheets[preferredSheet];
@@ -253,6 +271,15 @@ export function DigitalServicesPage() {
     });
   }, [services.data, search, statusFilter, categoryFilter]);
 
+  async function refreshDigitalServices() {
+    await Promise.all([
+      utils.digitalServices.list.invalidate(),
+      utils.digitalServices.stats.invalidate(),
+      utils.digitalServices.catalog.invalidate(),
+      utils.digitalServices.paymentMethods.invalidate()
+    ]);
+  }
+
   const createSubscription = trpc.digitalServices.createSubscription.useMutation({
     onSuccess: async (_created: any) => {
       const label = serviceMode === 'existing' ? catalog.data?.find((service: any) => service.id === serviceId)?.name : serviceName;
@@ -271,15 +298,29 @@ export function DigitalServicesPage() {
       setRenewalDay('');
       setUsageDescription('');
       setNotes('');
-      await utils.digitalServices.invalidate();
-    }
+      await refreshDigitalServices();
+    },
+    onError: (error: Error) => setFeedback(error.message)
   });
 
   const importSubscriptions = trpc.digitalServices.importSubscriptions.useMutation({
+    onMutate: () => {
+      setImportError(null);
+      setImportResult(null);
+      setFeedback('Importando registros del Excel. Espera unos segundos...');
+    },
     onSuccess: async (result: any) => {
       setImportResult(result);
-      setFeedback(`Importación terminada: ${result.created} creadas, ${result.skippedDuplicates} duplicadas omitidas.`);
-      await utils.digitalServices.invalidate();
+      setFeedback(`Importación terminada: ${result.created} creadas, ${result.skippedDuplicates} duplicadas omitidas, ${result.skippedInvalid} inválidas.`);
+      await refreshDigitalServices();
+      if (result.created > 0) {
+        window.setTimeout(() => document.querySelector('.digital-board-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250);
+      }
+    },
+    onError: (error: Error) => {
+      const message = getDigitalImportErrorMessage(error);
+      setImportError(message);
+      setFeedback(message);
     }
   });
 
@@ -340,7 +381,11 @@ export function DigitalServicesPage() {
   }
 
   function executeImport() {
-    if (!importRows.length) return;
+    if (!importRows.length) {
+      setImportError('Primero selecciona un archivo XLSX válido para generar la previsualización.');
+      return;
+    }
+    setImportError(null);
     importSubscriptions.mutate({ rows: importRows });
   }
 
@@ -452,6 +497,7 @@ export function DigitalServicesPage() {
             </div>
           </div>
           {feedback && <p className="status-feedback" role="status">{feedback}</p>}
+          {services.error && <p className="error-feedback" role="alert">No se pudieron cargar los servicios digitales: {getDigitalImportErrorMessage(services.error)}</p>}
           <div className="digital-service-list">
             {filteredServices.map((service: any) => {
               const isExpanded = expandedService === service.id;
